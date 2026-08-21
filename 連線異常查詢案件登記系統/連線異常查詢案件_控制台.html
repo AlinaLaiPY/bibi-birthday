@@ -1,0 +1,1943 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>連線異常查詢案件 — 資安組控制台</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--
+  連線異常查詢案件登記系統 — Phase 1 本機控制台
+  單一 HTML 檔，雙擊即開；完全離線，不引用任何外部 CDN、字型或套件。
+  .xlsx 解析（ZIP + DEFLATE 解壓）為本檔內嵌之純 JavaScript 實作，無外部函式庫。
+-->
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f3ef;
+  --surface:#ffffff;
+  --surface-2:#fbfaf7;
+  --surface-3:#f0eee9;
+  --line:#e5e2db;
+  --line-soft:#eeece6;
+  --ink:#1b1a17;
+  --ink-2:#57554e;
+  --ink-3:#8b887f;
+  --brand:#2a78d6;
+  --brand-ink:#1c5cab;
+  --brand-soft:#eaf2fd;
+  --good:#0ca30c;
+  --warning:#fab219;
+  --serious:#ec835a;
+  --critical:#d03b3b;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100;
+  --s5:#e87ba4; --s6:#008300; --s7:#4a3aa7; --s8:#e34948;
+  --radius:14px;
+  --shadow:0 1px 2px rgba(27,26,23,.04), 0 8px 24px -12px rgba(27,26,23,.14);
+  --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Heiti TC","Apple LiGothic",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:15px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:.01em}
+button{font-family:inherit;font-size:14px;cursor:pointer}
+select{font-family:inherit;font-size:14px}
+
+/* ---------- 版面 ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px 72px}
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:saturate(1.4) blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{
+  max-width:1240px;margin:0 auto;padding:14px 24px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+}
+.brandmark{
+  width:38px;height:38px;border-radius:10px;flex:none;
+  background:linear-gradient(150deg,#2a78d6,#1c5cab);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:15px;letter-spacing:.02em;
+}
+.title-block{min-width:0}
+.title-block h1{font-size:17px;line-height:1.3}
+.title-block .sub{font-size:12.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spacer{flex:1 1 auto}
+.btn{
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  padding:8px 14px;border-radius:9px;font-weight:600;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.btn:hover{background:var(--surface-3);color:var(--ink)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-ink);border-color:var(--brand-ink);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- 匯入區 ---------- */
+.dropzone{
+  margin:40px 0;padding:56px 32px;text-align:center;
+  background:var(--surface);border:2px dashed #d8d4cb;border-radius:20px;
+  transition:border-color .15s,background .15s;
+}
+.dropzone.hot{border-color:var(--brand);background:var(--brand-soft)}
+.dropzone h2{font-size:20px;margin-bottom:10px}
+.dropzone p{color:var(--ink-2);margin:6px 0;font-size:14px}
+.dropzone .hint{color:var(--ink-3);font-size:13px;margin-top:18px;line-height:1.9}
+.dropzone .big{font-size:40px;line-height:1;margin-bottom:14px}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:22px 24px;margin-bottom:20px;
+}
+.card-head{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.card-head h2{font-size:16.5px}
+.card-head h3{font-size:15px}
+.card-head .desc{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+.sec-label{
+  display:flex;align-items:center;gap:10px;
+  margin:34px 0 14px;font-size:12.5px;font-weight:700;color:var(--ink-3);
+  letter-spacing:.14em;
+}
+.sec-label::after{content:"";flex:1;height:1px;background:var(--line)}
+.pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;
+  background:var(--surface-3);color:var(--ink-2);
+}
+.pill.brand{background:var(--brand-soft);color:var(--brand-ink)}
+
+/* ---------- 待辦表 ---------- */
+table{border-collapse:collapse;width:100%;font-size:14px}
+thead th{
+  text-align:left;font-size:12px;font-weight:700;color:var(--ink-3);
+  letter-spacing:.06em;padding:8px 12px;border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+tbody td{padding:11px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tbody td.num{white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface-2)}
+.num{font-variant-numeric:tabular-nums}
+.seq{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:7px;background:var(--surface-3);
+  font-size:12.5px;font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums;
+}
+.seq.first{background:var(--brand);color:#fff}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;
+  border:1px solid transparent;white-space:nowrap;
+}
+.badge .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.badge.good{background:#eaf7ea;color:#0a7a0a;border-color:#cfe9cf}
+.badge.warning{background:#fef5e0;color:#8a6100;border-color:#f6e3b4}
+.badge.serious{background:#fdeee7;color:#a1451c;border-color:#f7d6c6}
+.badge.critical{background:#fbeaea;color:#a52a2a;border-color:#f2cccc}
+.badge.mute{background:var(--surface-3);color:var(--ink-2);border-color:var(--line)}
+.tbl-wrap{overflow-x:auto}
+.empty-line{padding:26px;text-align:center;color:var(--ink-3);font-size:14px}
+
+/* ---------- 篩選列 ---------- */
+.filterbar{
+  display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 18px;margin-bottom:20px;box-shadow:var(--shadow);
+}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11.5px;font-weight:700;color:var(--ink-3);letter-spacing:.08em}
+.field select{
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:8px;padding:7px 10px;min-width:150px;
+}
+.field select:focus{outline:2px solid var(--brand-soft);border-color:var(--brand)}
+.filter-note{font-size:12px;color:var(--ink-3);margin-left:auto;text-align:right;line-height:1.5}
+
+/* ---------- KPI ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:14px;margin-bottom:20px}
+.kpi{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;box-shadow:var(--shadow);
+}
+.kpi .k-label{font-size:12.5px;color:var(--ink-3);font-weight:600;display:flex;align-items:center;gap:6px}
+.kpi .k-value{font-size:30px;font-weight:700;line-height:1.25;margin-top:6px;letter-spacing:-.01em}
+.kpi .k-value .unit{font-size:14px;font-weight:600;color:var(--ink-3);margin-left:3px}
+.kpi .k-foot{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.kpi.accent{background:linear-gradient(155deg,#f2f7fe,#ffffff 65%);border-color:#d6e4f8}
+.kpi.accent .k-value{color:var(--brand-ink)}
+.delta{font-weight:700}
+.delta.up{color:var(--critical)}
+.delta.down{color:var(--good)}
+.delta.flat{color:var(--ink-3)}
+
+/* ---------- 圖表 ---------- */
+.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px;margin-bottom:20px}
+.chart-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:20px 22px;display:flex;flex-direction:column;
+}
+.chart-body{min-height:40px}
+.chart-body svg{display:block;width:100%;height:auto;overflow:visible}
+.legend{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:14px}
+.legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
+.legend-swatch{width:11px;height:11px;border-radius:3px;flex:none}
+.table-toggle{
+  margin-top:14px;align-self:flex-start;
+  border:1px solid var(--line);background:var(--surface-2);color:var(--ink-2);
+  padding:5px 11px;border-radius:8px;font-size:12.5px;font-weight:600;
+}
+.table-toggle:hover{background:var(--surface-3)}
+.mini-table{margin-top:12px;display:none}
+.mini-table.show{display:block}
+.mini-table table{font-size:13px}
+.mini-table td.n,.mini-table th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- 症狀對照表 ---------- */
+.matrix{border-collapse:separate;border-spacing:2px;font-size:13px;width:auto}
+.matrix th{
+  font-size:11.5px;font-weight:700;color:var(--ink-2);padding:6px 8px;
+  background:var(--surface-2);border-radius:6px;vertical-align:bottom;border:none;
+}
+.matrix thead th{border-bottom:none}
+.matrix th.rowhead{text-align:left;min-width:190px;max-width:230px;white-space:normal;line-height:1.35}
+.matrix td{
+  padding:0;border:none;text-align:center;font-variant-numeric:tabular-nums;
+  border-radius:6px;min-width:46px;
+}
+.matrix td .cellbox{
+  display:flex;align-items:center;justify-content:center;
+  height:34px;border-radius:6px;font-weight:600;font-size:13px;
+}
+.matrix td.zero .cellbox{color:#c9c6be}
+.matrix .total .cellbox{background:var(--surface-3);color:var(--ink);font-weight:700}
+.scale-legend{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;color:var(--ink-3)}
+.scale-legend .steps{display:flex;gap:2px}
+.scale-legend .steps i{width:26px;height:12px;border-radius:3px;display:block}
+
+/* ---------- Tooltip ---------- */
+#tip{
+  position:fixed;z-index:80;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:#26251f;color:#fff;border-radius:9px;padding:9px 12px;
+  font-size:12.5px;line-height:1.55;box-shadow:0 8px 24px -8px rgba(0,0,0,.5);
+  max-width:300px;
+}
+#tip.show{opacity:1}
+#tip b{font-weight:700}
+#tip .t-sub{color:#c9c7bd}
+
+/* ---------- Modal ---------- */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(27,26,23,.55);z-index:90;
+  display:none;align-items:center;justify-content:center;padding:28px;
+}
+.modal-mask.show{display:flex}
+.modal{
+  background:var(--surface);border-radius:16px;max-width:min(980px,94vw);max-height:90vh;
+  overflow:auto;padding:22px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5);
+}
+.modal img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;display:block}
+.modal-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+
+/* ---------- 其他 ---------- */
+.notice{
+  background:#fff8e8;border:1px solid #f4e2b4;color:#7a5b00;
+  border-radius:11px;padding:12px 16px;font-size:13.5px;margin-bottom:18px;
+}
+.notice b{color:#6a4f00}
+.foot{margin-top:34px;font-size:12px;color:var(--ink-3);line-height:1.9;text-align:center}
+.hide{display:none !important}
+.srcline{font-size:12px;color:var(--ink-3)}
+
+/* ---------- 列印 ---------- */
+@media print{
+  body{background:#fff}
+  .topbar,.dropzone,.table-toggle,.filterbar select,#tip,.modal-mask,.no-print{display:none !important}
+  .card,.kpi,.chart-card,.filterbar{box-shadow:none;break-inside:avoid;border-color:#ddd}
+  .wrap{padding:0}
+  .sec-label{margin-top:18px}
+  @page{size:A4 portrait;margin:12mm}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brandmark">資安</div>
+    <div class="title-block">
+      <h1>連線異常查詢案件 — 資安組控制台</h1>
+      <div class="sub" id="sourceLine">尚未匯入資料</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="btn-row">
+      <button class="btn primary" id="btnPick">選擇檔案（.xlsx／.csv）</button>
+      <button class="btn" id="btnPng" disabled>匯出統計圖（PNG）</button>
+      <button class="btn" id="btnCsv" disabled>匯出統計結果（CSV）</button>
+      <button class="btn" id="btnPrint" disabled>列印／存成 PDF</button>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.csv,.txt" multiple class="hide">
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- 匯入區 -->
+  <div class="dropzone" id="dropzone">
+    <div class="big">📥</div>
+    <h2>請匯入從 NAS 匯出的案件資料</h2>
+    <p>把 <b>.xlsx</b> 或 <b>.csv</b> 檔案拖進這個方框，或按上方「選擇檔案」。</p>
+    <p class="hint">
+      建議做法：在 NAS 線上 Excel 點選「匯出」→「Microsoft Excel（.xlsx）」，
+      直接把整份檔案（含「案件登記」與「選項」兩個工作表）匯入這裡。<br>
+      本頁完全離線運作，資料只在您自己的電腦上處理，不會傳送到任何地方。
+    </p>
+  </div>
+
+  <div id="loadError" class="notice hide"></div>
+
+  <!-- 主要內容 -->
+  <div id="main" class="hide">
+
+    <!-- 待辦區 -->
+    <div class="sec-label">待辦案件（依登記時間排序）</div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2>未結案案件 — 先來先辦</h2>
+          <div class="desc">依<b>登記時間由舊到新</b>排序。順序即處理順序，不受口頭催促影響。此區固定顯示全部未結案案件，不受下方任何篩選條件影響。</div>
+        </div>
+        <div class="spacer"></div>
+        <span class="pill brand" id="pendingCount">—</span>
+      </div>
+      <div class="tbl-wrap"><table id="pendingTable"></table></div>
+      <div class="empty-line hide" id="pendingEmpty">目前沒有未結案的案件。</div>
+    </div>
+
+    <!-- 統計區 -->
+    <div class="sec-label">統計分析</div>
+
+    <div class="filterbar">
+      <div class="field">
+        <label for="fRange">統計期間</label>
+        <select id="fRange">
+          <option value="all">全部資料</option>
+          <option value="m1">本月</option>
+          <option value="m3" selected>近三個月</option>
+          <option value="m6">近六個月</option>
+          <option value="m12">近十二個月</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="fOwner">責任單位</label>
+        <select id="fOwner"><option value="__all">全部</option></select>
+      </div>
+      <div class="field">
+        <label for="fType">問題類型</label>
+        <select id="fType"><option value="__all">全部</option></select>
+      </div>
+      <div class="field">
+        <label for="fApplicant">申請人／單位</label>
+        <select id="fApplicant"><option value="__all">全部</option></select>
+      </div>
+      <div class="filter-note" id="filterNote">—</div>
+    </div>
+
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="card-head">
+          <div>
+            <h3>責任單位占比</h3>
+            <div class="desc">關鍵指標：有多少案件其實不該由資安組承接。</div>
+          </div>
+        </div>
+        <div class="chart-body" id="chartOwner"></div>
+        <div class="legend" id="legendOwner"></div>
+        <button class="table-toggle" data-target="tblOwner">顯示數字表格</button>
+        <div class="mini-table" id="tblOwner"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="card-head">
+          <div>
+            <h3>問題類型分布</h3>
+            <div class="desc">開發人員登記時自行選擇的症狀類型。</div>
+          </div>
+        </div>
+        <div class="chart-body" id="chartType"></div>
+        <button class="table-toggle" data-target="tblType">顯示數字表格</button>
+        <div class="mini-table" id="tblType"></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="card-head">
+          <div>
+            <h3>每月案件量趨勢</h3>
+            <div class="desc">近十二個月的登記件數（不受期間篩選影響，本月以深色標示）。</div>
+          </div>
+        </div>
+        <div class="chart-body" id="chartTrend"></div>
+        <button class="table-toggle" data-target="tblTrend">顯示數字表格</button>
+        <div class="mini-table" id="tblTrend"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="card-head">
+          <div>
+            <h3>重複案件 Top 5</h3>
+            <div class="desc">依申請人／單位統計「已勾選為重複案件」的件數。</div>
+          </div>
+        </div>
+        <div class="chart-body" id="chartDup"></div>
+        <button class="table-toggle" data-target="tblDup">顯示數字表格</button>
+        <div class="mini-table" id="tblDup"></div>
+      </div>
+    </div>
+
+    <!-- 症狀對照表 -->
+    <div class="sec-label">症狀對照表</div>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2>問題類型 × 實際原因 交叉統計</h2>
+          <div class="desc">累積三個月以上即可直接發給開發單位，讓其自行初判該找哪一組。數字為案件件數。<br>欄位名稱過長會簡化顯示，滑鼠移上去可看完整名稱；表格可左右捲動。</div>
+        </div>
+      </div>
+      <div class="tbl-wrap" id="matrixWrap"></div>
+      <div class="scale-legend">
+        <span>件數</span>
+        <span class="steps">
+          <i style="background:#f0eee9"></i><i style="background:#cde2fb"></i><i style="background:#9ec5f4"></i>
+          <i style="background:#5598e7"></i><i style="background:#2a78d6"></i><i style="background:#184f95"></i>
+        </span>
+        <span>少 → 多</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2>症狀 → 建議先找哪一組</h2>
+          <div class="desc">依每一種問題類型的歷史結案結果推算；命中率為該類型中最常見責任單位所占的比例。件數過少（少於 3 件）僅供參考。</div>
+        </div>
+      </div>
+      <div class="tbl-wrap"><table id="guideTable"></table></div>
+    </div>
+
+    <div class="foot" id="footNote"></div>
+  </div>
+</div>
+
+<div id="tip"></div>
+<div id="toast"></div>
+
+<div class="modal-mask" id="pngModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 style="font-size:16px">統計圖已產生</h2>
+      <div class="spacer"></div>
+      <a class="btn primary" id="pngDownload" download="連線異常查詢案件_統計圖.png" href="#">下載圖片</a>
+      <button class="btn" id="pngClose">關閉</button>
+    </div>
+    <p style="font-size:13px;color:#57554e;margin:0 0 12px">
+      若按「下載圖片」沒有反應，可直接在圖片上按滑鼠右鍵 →「另存圖片」，或直接複製貼進簽呈／簡報。
+    </p>
+    <img id="pngPreview" alt="統計圖預覽">
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   1. 內嵌解壓與檔案解析（純 JavaScript，無任何外部函式庫）
+   ========================================================================= */
+
+/* ---- 1.1 DEFLATE 解壓（RFC 1951）---- */
+var L_BASE=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+var L_EXT =[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+var D_BASE=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+var D_EXT =[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+var CLEN_ORDER=[16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+
+function buildHuffman(lengths,n){
+  var counts=new Int32Array(16),i;
+  for(i=0;i<n;i++) counts[lengths[i]]++;
+  counts[0]=0;
+  var offs=new Int32Array(16);
+  for(i=1;i<16;i++) offs[i]=offs[i-1]+counts[i-1];
+  var symbols=new Int32Array(n);
+  for(i=0;i<n;i++) if(lengths[i]) symbols[offs[lengths[i]]++]=i;
+  return {counts:counts,symbols:symbols};
+}
+
+function inflateRaw(src){
+  var pos=0,bitBuf=0,bitCnt=0;
+  var out=new Uint8Array(Math.max(4096,src.length*5)),outLen=0;
+
+  function grow(need){
+    if(outLen+need<=out.length) return;
+    var cap=out.length;
+    while(cap<outLen+need) cap*=2;
+    var nb=new Uint8Array(cap); nb.set(out.subarray(0,outLen)); out=nb;
+  }
+  function getBits(n){
+    while(bitCnt<n){
+      if(pos>=src.length) throw new Error('壓縮資料不完整');
+      bitBuf|=src[pos++]<<bitCnt; bitCnt+=8;
+    }
+    var v=bitBuf&((1<<n)-1);
+    bitBuf>>>=n; bitCnt-=n;
+    return v;
+  }
+  function decode(tree){
+    var code=0,first=0,index=0,len,count;
+    for(len=1;len<16;len++){
+      code|=getBits(1);
+      count=tree.counts[len];
+      if(code-first<count) return tree.symbols[index+(code-first)];
+      index+=count; first=(first+count)<<1; code<<=1;
+    }
+    throw new Error('壓縮資料損毀（Huffman 編碼錯誤）');
+  }
+
+  var fixedLit=null,fixedDist=null;
+  function getFixed(){
+    if(!fixedLit){
+      var l=new Uint8Array(288),i;
+      for(i=0;i<144;i++) l[i]=8;
+      for(i=144;i<256;i++) l[i]=9;
+      for(i=256;i<280;i++) l[i]=7;
+      for(i=280;i<288;i++) l[i]=8;
+      fixedLit=buildHuffman(l,288);
+      var d=new Uint8Array(30); for(i=0;i<30;i++) d[i]=5;
+      fixedDist=buildHuffman(d,30);
+    }
+    return [fixedLit,fixedDist];
+  }
+
+  var last=0;
+  do{
+    last=getBits(1);
+    var type=getBits(2);
+    if(type===0){
+      bitBuf=0;bitCnt=0;
+      if(pos+4>src.length) throw new Error('壓縮資料不完整');
+      var len=src[pos]|(src[pos+1]<<8); pos+=4;
+      grow(len);
+      out.set(src.subarray(pos,pos+len),outLen);
+      outLen+=len; pos+=len;
+    }else if(type===1||type===2){
+      var lt,dt;
+      if(type===1){ var f=getFixed(); lt=f[0]; dt=f[1]; }
+      else{
+        var hlit=getBits(5)+257, hdist=getBits(5)+1, hclen=getBits(4)+4, i;
+        var clens=new Uint8Array(19);
+        for(i=0;i<hclen;i++) clens[CLEN_ORDER[i]]=getBits(3);
+        var ct=buildHuffman(clens,19);
+        var lens=new Uint8Array(hlit+hdist),n=0;
+        while(n<hlit+hdist){
+          var sym=decode(ct),rep,val;
+          if(sym<16){ lens[n++]=sym; }
+          else if(sym===16){ val=n>0?lens[n-1]:0; rep=3+getBits(2); while(rep--) lens[n++]=val; }
+          else if(sym===17){ rep=3+getBits(3); while(rep--) lens[n++]=0; }
+          else{ rep=11+getBits(7); while(rep--) lens[n++]=0; }
+        }
+        lt=buildHuffman(lens.subarray(0,hlit),hlit);
+        dt=buildHuffman(lens.subarray(hlit),hdist);
+      }
+      for(;;){
+        var s=decode(lt);
+        if(s<256){ grow(1); out[outLen++]=s; }
+        else if(s===256) break;
+        else{
+          s-=257;
+          if(s>=L_BASE.length) throw new Error('壓縮資料損毀（長度碼錯誤）');
+          var length=L_BASE[s]+getBits(L_EXT[s]);
+          var ds=decode(dt);
+          var dist=D_BASE[ds]+getBits(D_EXT[ds]);
+          grow(length);
+          var from=outLen-dist;
+          if(from<0) throw new Error('壓縮資料損毀（距離錯誤）');
+          for(var k=0;k<length;k++) out[outLen++]=out[from+k];
+        }
+      }
+    }else{
+      throw new Error('壓縮資料損毀（不支援的區塊型別）');
+    }
+  }while(!last);
+
+  return out.subarray(0,outLen);
+}
+
+/* ---- 1.2 ZIP 容器（.xlsx 就是一個 ZIP）---- */
+function readZip(buf){
+  var b=new Uint8Array(buf), dv=new DataView(buf);
+  var eocd=-1;
+  for(var i=b.length-22;i>=0 && i>=b.length-66000;i--){
+    if(b[i]===0x50&&b[i+1]===0x4b&&b[i+2]===0x05&&b[i+3]===0x06){ eocd=i; break; }
+  }
+  if(eocd<0) throw new Error('這不是有效的 .xlsx 檔（找不到 ZIP 結尾）');
+  var count=dv.getUint16(eocd+10,true);
+  var cdOff=dv.getUint32(eocd+16,true);
+  var files={},p=cdOff,dec=new TextDecoder('utf-8');
+  for(var n=0;n<count;n++){
+    if(dv.getUint32(p,true)!==0x02014b50) break;
+    var method=dv.getUint16(p+10,true);
+    var compSize=dv.getUint32(p+20,true);
+    var nameLen=dv.getUint16(p+28,true);
+    var extraLen=dv.getUint16(p+30,true);
+    var cmtLen=dv.getUint16(p+32,true);
+    var localOff=dv.getUint32(p+42,true);
+    var name=dec.decode(b.subarray(p+46,p+46+nameLen));
+    files[name]={method:method,compSize:compSize,localOff:localOff};
+    p+=46+nameLen+extraLen+cmtLen;
+  }
+  return {
+    has:function(name){ return !!files[name]; },
+    names:function(){ return Object.keys(files); },
+    read:function(name){
+      var f=files[name]; if(!f) return null;
+      if(dv.getUint32(f.localOff,true)!==0x04034b50) throw new Error('ZIP 結構異常');
+      var nl=dv.getUint16(f.localOff+26,true), el=dv.getUint16(f.localOff+28,true);
+      var start=f.localOff+30+nl+el;
+      var raw=b.subarray(start,start+f.compSize);
+      if(f.method===0) return raw;
+      if(f.method===8) return inflateRaw(raw);
+      throw new Error('不支援的壓縮方式，請改用「另存為 .csv」再匯入');
+    },
+    readText:function(name){
+      var d=this.read(name); return d?new TextDecoder('utf-8').decode(d):null;
+    }
+  };
+}
+
+/* ---- 1.3 .xlsx → 工作表資料 ---- */
+var BUILTIN_DATE_FMT={14:1,15:1,16:1,17:1,18:1,19:1,20:1,21:1,22:1,45:1,46:1,47:1};
+
+function colIndexFromRef(ref){
+  var n=0;
+  for(var i=0;i<ref.length;i++){
+    var c=ref.charCodeAt(i);
+    if(c>=65&&c<=90) n=n*26+(c-64);
+    else if(c>=97&&c<=122) n=n*26+(c-96);
+    else break;
+  }
+  return n-1;
+}
+function excelSerialToDate(v){
+  if(!isFinite(v)) return null;
+  var ms=Math.round((v-25569)*86400000);
+  var d=new Date(ms);
+  if(isNaN(d.getTime())) return null;
+  return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds());
+}
+function textOfNode(node){
+  var ts=node.getElementsByTagName('t'),s='';
+  for(var i=0;i<ts.length;i++){
+    var pn=ts[i].parentNode;
+    if(pn && pn.nodeName && pn.nodeName.indexOf('rPh')>=0) continue;
+    s+=ts[i].textContent;
+  }
+  return s;
+}
+function parseXml(text){
+  var doc=new DOMParser().parseFromString(text,'application/xml');
+  if(doc.getElementsByTagName('parsererror').length) throw new Error('檔案內容無法解析');
+  return doc;
+}
+
+function parseXlsx(buf){
+  var zip=readZip(buf);
+
+  /* 共用字串 */
+  var shared=[];
+  var sstText=zip.has('xl/sharedStrings.xml')?zip.readText('xl/sharedStrings.xml'):null;
+  if(sstText){
+    var sis=parseXml(sstText).getElementsByTagName('si');
+    for(var i=0;i<sis.length;i++) shared.push(textOfNode(sis[i]));
+  }
+
+  /* 樣式（判斷哪些欄位是日期格式）*/
+  var xfIsDate=[];
+  if(zip.has('xl/styles.xml')){
+    var sdoc=parseXml(zip.readText('xl/styles.xml'));
+    var custom={},nf=sdoc.getElementsByTagName('numFmt'),j;
+    for(j=0;j<nf.length;j++){
+      var code=nf[j].getAttribute('formatCode')||'';
+      var stripped=code.replace(/\[[^\]]*\]/g,'').replace(/"[^"]*"/g,'');
+      custom[nf[j].getAttribute('numFmtId')]=/[ymdhs]/i.test(stripped)?1:0;
+    }
+    var cellXfs=sdoc.getElementsByTagName('cellXfs')[0];
+    if(cellXfs){
+      var xfs=cellXfs.getElementsByTagName('xf');
+      for(j=0;j<xfs.length;j++){
+        var id=xfs[j].getAttribute('numFmtId')||'0';
+        xfIsDate.push(BUILTIN_DATE_FMT[parseInt(id,10)]===1 || custom[id]===1);
+      }
+    }
+  }
+
+  /* 工作表清單 */
+  var rels={};
+  if(zip.has('xl/_rels/workbook.xml.rels')){
+    var rdoc=parseXml(zip.readText('xl/_rels/workbook.xml.rels'));
+    var rl=rdoc.getElementsByTagName('Relationship');
+    for(var r=0;r<rl.length;r++) rels[rl[r].getAttribute('Id')]=rl[r].getAttribute('Target');
+  }
+  var wdoc=parseXml(zip.readText('xl/workbook.xml'));
+  var sheetNodes=wdoc.getElementsByTagName('sheet');
+  var sheets=[];
+  for(var s=0;s<sheetNodes.length;s++){
+    var nameAttr=sheetNodes[s].getAttribute('name')||('工作表'+(s+1));
+    var rid=sheetNodes[s].getAttribute('r:id')||sheetNodes[s].getAttribute('id');
+    var target=rels[rid]||('worksheets/sheet'+(s+1)+'.xml');
+    if(target.charAt(0)==='/') target=target.substring(1);
+    else target='xl/'+target.replace(/^\.\//,'');
+    if(!zip.has(target)) continue;
+    sheets.push({name:nameAttr,rows:parseSheetXml(zip.readText(target),shared,xfIsDate)});
+  }
+  return sheets;
+}
+
+function parseSheetXml(xml,shared,xfIsDate){
+  var doc=parseXml(xml);
+  var rowNodes=doc.getElementsByTagName('row');
+  var rows=[];
+  for(var i=0;i<rowNodes.length;i++){
+    var cells=rowNodes[i].getElementsByTagName('c');
+    var arr=[];
+    for(var c=0;c<cells.length;c++){
+      var cell=cells[c];
+      var ref=cell.getAttribute('r')||'';
+      var idx=ref?colIndexFromRef(ref):arr.length;
+      var t=cell.getAttribute('t')||'n';
+      var sIdx=parseInt(cell.getAttribute('s')||'-1',10);
+      var val=null;
+      if(t==='inlineStr'){
+        var is=cell.getElementsByTagName('is')[0];
+        val=is?textOfNode(is):'';
+      }else{
+        var vNode=cell.getElementsByTagName('v')[0];
+        var raw=vNode?vNode.textContent:'';
+        if(raw===''){ val=null; }
+        else if(t==='s'){ val=shared[parseInt(raw,10)]||''; }
+        else if(t==='str'){ val=raw; }
+        else if(t==='b'){ val=(raw==='1')?'是':'否'; }
+        else if(t==='e'){ val=''; }
+        else{
+          var num=parseFloat(raw);
+          if(sIdx>=0 && xfIsDate[sIdx] && isFinite(num)){
+            var d=excelSerialToDate(num);
+            val=d||num;
+          }else{
+            val=isFinite(num)?num:raw;
+          }
+        }
+      }
+      while(arr.length<idx) arr.push(null);
+      arr[idx]=val;
+    }
+    rows.push(arr);
+  }
+  return rows;
+}
+
+/* ---- 1.4 CSV ---- */
+function decodeTextBytes(buf){
+  var b=new Uint8Array(buf);
+  if(b.length>=3&&b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF) return new TextDecoder('utf-8').decode(b.subarray(3));
+  if(b.length>=2&&b[0]===0xFF&&b[1]===0xFE) return new TextDecoder('utf-16le').decode(b.subarray(2));
+  if(b.length>=2&&b[0]===0xFE&&b[1]===0xFF) return new TextDecoder('utf-16be').decode(b.subarray(2));
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(b); }
+  catch(e){
+    try{ return new TextDecoder('big5').decode(b); }
+    catch(e2){ return new TextDecoder('utf-8').decode(b); }
+  }
+}
+function parseCsv(text){
+  var rows=[],row=[],cur='',inQ=false,i=0;
+  if(text.charAt(0)==='﻿') text=text.substring(1);
+  var delim=guessDelimiter(text);
+  while(i<text.length){
+    var ch=text.charAt(i);
+    if(inQ){
+      if(ch==='"'){
+        if(text.charAt(i+1)==='"'){ cur+='"'; i+=2; continue; }
+        inQ=false; i++; continue;
+      }
+      cur+=ch; i++; continue;
+    }
+    if(ch==='"'){ inQ=true; i++; continue; }
+    if(ch===delim){ row.push(cur); cur=''; i++; continue; }
+    if(ch==='\r'){ i++; continue; }
+    if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; i++; continue; }
+    cur+=ch; i++;
+  }
+  row.push(cur); rows.push(row);
+  while(rows.length && rows[rows.length-1].every(function(x){return String(x).trim()==='';})) rows.pop();
+  return rows;
+}
+function guessDelimiter(text){
+  var head=text.split(/\r?\n/).slice(0,5).join('\n');
+  var cands=[',','\t',';'],best=',',bestN=-1;
+  cands.forEach(function(d){
+    var n=head.split(d).length;
+    if(n>bestN){ bestN=n; best=d; }
+  });
+  return best;
+}
+
+/* =========================================================================
+   2. 資料模型（欄位名稱／代碼與 Phase 2 完全一致）
+   ========================================================================= */
+function normHeader(s){
+  s=String(s==null?'':s);
+  s=s.replace(/[（(][^）)]*[）)]/g,'');
+  s=s.replace(/[\s　]/g,'');
+  s=s.replace(/[／∕\\]/g,'/');
+  s=s.replace(/[*＊:：．.、_-]/g,'');
+  return s.toLowerCase();
+}
+function A(list){ return list.map(normHeader); }
+
+var FIELDS=[
+  {key:'caseNo',        label:'案件編號',      alias:A(['案件編號','編號','案號'])},
+  {key:'registeredAt',  label:'登記時間',      alias:A(['登記時間','登錄時間','登記日期','登記日期時間'])},
+  {key:'applicant',     label:'申請人／單位',  alias:A(['申請人／單位','申請人/單位','申請人','申請單位','申請人單位'])},
+  {key:'issueType',     label:'問題類型',      alias:A(['問題類型','症狀','問題類別'])},
+  {key:'issueTypeOther',label:'問題類型其他說明',alias:A(['問題類型其他說明','問題類型說明'])},
+  {key:'srcIp',         label:'來源IP',        alias:A(['來源IP','來源IP（含網段）','來源位址'])},
+  {key:'dstIp',         label:'目的IP或網域',  alias:A(['目的IP或網域','目的IP','目的網域','目的IP/網域','目的位址'])},
+  {key:'dstPort',       label:'目的通訊埠',    alias:A(['目的通訊埠','通訊埠','port','目的port'])},
+  {key:'protocol',      label:'通訊協定',      alias:A(['通訊協定','協定','protocol'])},
+  {key:'errorMsg',      label:'錯誤訊息原文',  alias:A(['錯誤訊息原文','錯誤訊息','錯誤訊息全文'])},
+  {key:'occurredAt',    label:'發生時間',      alias:A(['發生時間','事件發生時間'])},
+  {key:'purpose',       label:'用途說明',      alias:A(['用途說明','用途'])},
+  {key:'usagePeriod',   label:'預計使用期間',  alias:A(['預計使用期間','使用期間','期間'])},
+  {key:'rootCause',     label:'實際原因',      alias:A(['實際原因','真正原因','原因'])},
+  {key:'rootCauseOther',label:'實際原因其他說明',alias:A(['實際原因其他說明','實際原因說明'])},
+  {key:'ownerTeam',     label:'責任單位',      alias:A(['責任單位','權責單位','負責單位'])},
+  {key:'ownerTeamOther',label:'責任單位其他說明',alias:A(['責任單位其他說明','責任單位說明','跨組說明'])},
+  {key:'handlingTime',  label:'處理耗時',      alias:A(['處理耗時','耗時','處理時間'])},
+  {key:'isDuplicate',   label:'是否重複案件',  alias:A(['是否重複案件','重複案件','重複'])},
+  {key:'status',        label:'處理狀態',      alias:A(['處理狀態','狀態','案件狀態'])},
+  {key:'closedAt',      label:'結案時間',      alias:A(['結案時間','完成時間'])},
+  {key:'note',          label:'備註',          alias:A(['備註','說明','附註'])}
+];
+var ALIAS_MAP={};
+FIELDS.forEach(function(f){ f.alias.forEach(function(a){ if(a) ALIAS_MAP[a]=f.key; }); });
+
+/* 選項工作表的欄位群組 */
+var OPTION_GROUPS=[
+  {key:'applicant',   labels:A(['申請人／單位','申請人/單位','申請人','申請單位'])},
+  {key:'issueType',   labels:A(['問題類型'])},
+  {key:'protocol',    labels:A(['通訊協定','協定'])},
+  {key:'usagePeriod', labels:A(['預計使用期間','使用期間'])},
+  {key:'rootCause',   labels:A(['實際原因'])},
+  {key:'ownerTeam',   labels:A(['責任單位'])},
+  {key:'handlingTime',labels:A(['處理耗時'])},
+  {key:'status',      labels:A(['處理狀態','狀態'])}
+];
+
+/* 內建預設選項：僅在資料檔中沒有「選項」工作表時，用來決定圖表的排列順序 */
+var DEFAULT_OPTIONS={
+  issueType:['連線逾時，完全不通','連線被拒絕（Connection refused / Reset）','網頁功能異常，疑似被擋（送出失敗、特定參數出錯）',
+             '檔案上傳失敗','對外網站或外部 API 無法存取','憑證／加密相關錯誤（SSL/TLS）','其他（需填說明）'],
+  rootCause:['WAF 規則誤判／攔截','WebGateway 網址分類阻擋','Arbor DDoS 防禦系統流量清洗','FortiADC 設定（系統組）',
+             'Palo Alto 防火牆政策未開通（系統組）','Forti 系列防火牆政策未開通（301E／60F／61F，系統組）','SRX110 防火牆（系統組）',
+             '路由／交換器問題（Cisco Router、CoreSwitch，系統組）','專線問題（集保／中央外匯／票交所／JCIC／財金／NCCC／FXML）',
+             '應用程式本身問題，非網路設備所致','設定錯誤（IP／Port／網域打錯）','其他（需填說明）'],
+  ownerTeam:['資安組（WAF、Arbor DDoS、WebGateway）','系統組（FortiADC、Palo Alto、Forti 系列、SRX110、Cisco Router、CoreSwitch、專線）',
+             '開發單位自行處理','跨組（需填說明）'],
+  handlingTime:['5 分鐘內','15 分鐘','30 分鐘','1 小時','1 小時以上'],
+  status:['待處理','處理中','已結案'],
+  protocol:['TCP','UDP','HTTP','HTTPS','其他'],
+  usagePeriod:['一次性','長期'],
+  applicant:[]
+};
+
+/* ---- 值的轉換 ---- */
+function toDate(v){
+  if(v==null||v==='') return null;
+  if(v instanceof Date) return isNaN(v.getTime())?null:v;
+  if(typeof v==='number') return excelSerialToDate(v);
+  var s=String(v).trim();
+  if(!s) return null;
+  if(/^\d+(\.\d+)?$/.test(s) && parseFloat(s)>20000 && parseFloat(s)<80000) return excelSerialToDate(parseFloat(s));
+  s=s.replace(/[年月]/g,'/').replace(/日/g,' ').replace(/[上下]午/g,'');
+  var m=s.match(/^(\d{2,4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})(?:[ T]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if(m){
+    var y=parseInt(m[1],10);
+    if(y<1911) y+=1911;                       /* 容許民國年 */
+    return new Date(y,parseInt(m[2],10)-1,parseInt(m[3],10),parseInt(m[4]||'0',10),parseInt(m[5]||'0',10),parseInt(m[6]||'0',10));
+  }
+  var d=new Date(s);
+  return isNaN(d.getTime())?null:d;
+}
+function toText(v){
+  if(v==null) return '';
+  if(v instanceof Date) return fmtDateTime(v);
+  return String(v).trim();
+}
+function isTrueish(v){
+  if(v==null) return false;
+  if(typeof v==='boolean') return v;
+  if(typeof v==='number') return v!==0;
+  var s=String(v).trim();
+  if(!s) return false;
+  return /^(是|y|yes|true|v|✓|✔|1|o|有|重複|重覆)$/i.test(s);
+}
+function handlingMinutes(label){
+  if(!label) return null;
+  var s=String(label).replace(/[\s　]/g,'');
+  s=s.replace(/[０-９．]/g,function(c){ return c==='．'?'.':String.fromCharCode(c.charCodeAt(0)-65248); });
+  var m=s.match(/(\d+(?:\.\d+)?)/);
+  if(!m) return null;
+  var n=parseFloat(m[1]),mins;
+  if(/(小時|hr|hour|h$)/i.test(s)) mins=n*60;
+  else if(/(天|日)/.test(s)) mins=n*480;
+  else mins=n;
+  if(/(以上|超過|\+)/.test(s)) mins=mins*1.5;
+  return mins;
+}
+function isClosedRec(r){
+  var s=toText(r.status);
+  if(s){
+    if(/(未結案|待處理|待受理|處理中|受理中|進行中|未處理|新案|退回|補件)/.test(s)) return false;
+    if(/(已結案|結案|完成|已處理|關閉|close)/i.test(s)) return true;
+  }
+  return !!(toText(r.rootCause)&&toText(r.ownerTeam)&&toText(r.handlingTime));
+}
+
+/* ---- 由工作表建立案件紀錄 ---- */
+function findHeaderRow(rows){
+  for(var i=0;i<Math.min(rows.length,30);i++){
+    var row=rows[i]||[],hit=0,hasReg=false;
+    for(var c=0;c<row.length;c++){
+      var k=ALIAS_MAP[normHeader(row[c])];
+      if(k){ hit++; if(k==='registeredAt') hasReg=true; }
+    }
+    if(hit>=3&&hasReg) return i;   /* 必須要有「登記時間」才算案件登記表 */
+  }
+  return -1;
+}
+function looksLikeCaseSheet(rows){ return findHeaderRow(rows)>=0; }
+function looksLikeOptionSheet(rows){
+  if(!rows||!rows.length) return false;
+  for(var i=0;i<Math.min(rows.length,5);i++){
+    var row=rows[i]||[],hit=0;
+    for(var c=0;c<row.length;c++){
+      var h=normHeader(row[c]);
+      OPTION_GROUPS.forEach(function(g){ if(g.labels.indexOf(h)>=0) hit++; });
+    }
+    if(hit>=2) return true;
+  }
+  return false;
+}
+function buildRecords(rows){
+  var hi=findHeaderRow(rows);
+  if(hi<0) return [];
+  var header=rows[hi]||[],map={};
+  for(var c=0;c<header.length;c++){
+    var k=ALIAS_MAP[normHeader(header[c])];
+    if(k&&map[k]===undefined) map[k]=c;
+  }
+  var out=[];
+  for(var i=hi+1;i<rows.length;i++){
+    var row=rows[i]||[];
+    var nonEmpty=row.some(function(x){ return toText(x)!==''; });
+    if(!nonEmpty) continue;
+    var rec={_row:i+1};
+    FIELDS.forEach(function(f){
+      var idx=map[f.key];
+      rec[f.key]=(idx===undefined)?null:(row[idx]===undefined?null:row[idx]);
+    });
+    rec.registeredAtD=toDate(rec.registeredAt);
+    rec.occurredAtD=toDate(rec.occurredAt);
+    rec.closedAtD=toDate(rec.closedAt);
+    rec.applicantT=toText(rec.applicant)||'（未填）';
+    rec.issueTypeT=toText(rec.issueType)||'（未填）';
+    rec.rootCauseT=toText(rec.rootCause)||'（未判定）';
+    rec.ownerTeamT=toText(rec.ownerTeam)||'（未判定）';
+    rec.handlingT=toText(rec.handlingTime);
+    rec.minutes=handlingMinutes(rec.handlingT);
+    rec.dup=isTrueish(rec.isDuplicate);
+    rec.closed=isClosedRec(rec);
+    out.push(rec);
+  }
+  return out;
+}
+function buildOptions(rows){
+  var opts={};
+  if(!rows||!rows.length) return opts;
+  var hi=0;
+  for(var i=0;i<Math.min(rows.length,5);i++){
+    var row=rows[i]||[],hit=0;
+    for(var c=0;c<row.length;c++){
+      var h=normHeader(row[c]);
+      OPTION_GROUPS.forEach(function(g){ if(g.labels.indexOf(h)>=0) hit++; });
+    }
+    if(hit>=2){ hi=i; break; }
+  }
+  var header=rows[hi]||[];
+  for(var c2=0;c2<header.length;c2++){
+    var hn=normHeader(header[c2]),key=null;
+    OPTION_GROUPS.forEach(function(g){ if(g.labels.indexOf(hn)>=0) key=g.key; });
+    if(!key) continue;
+    var list=[];
+    for(var r=hi+1;r<rows.length;r++){
+      var v=toText((rows[r]||[])[c2]);
+      if(v&&list.indexOf(v)<0) list.push(v);
+    }
+    if(list.length) opts[key]=list;
+  }
+  return opts;
+}
+
+/* ---- 日期／文字工具 ---- */
+function pad(n){ return (n<10?'0':'')+n; }
+function fmtDateTime(d){
+  if(!d) return '';
+  return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function fmtDate(d){ return d?(d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())):''; }
+function monthKey(d){ return d?(d.getFullYear()+'-'+pad(d.getMonth()+1)):''; }
+function monthLabel(key){ var p=key.split('-'); return parseInt(p[1],10)+'月'; }
+function fmtDuration(ms){
+  if(ms<0) ms=0;
+  var mins=Math.floor(ms/60000);
+  var days=Math.floor(mins/1440), hours=Math.floor((mins%1440)/60), m=mins%60;
+  if(days>0) return days+' 天 '+hours+' 小時';
+  if(hours>0) return hours+' 小時 '+m+' 分';
+  return m+' 分鐘';
+}
+function waitLevel(ms){
+  var h=ms/3600000;
+  if(h>=72) return {cls:'critical',text:'逾 3 日',icon:'▲'};
+  if(h>=24) return {cls:'serious',text:'逾 1 日',icon:'◆'};
+  if(h>=4)  return {cls:'warning',text:'逾 4 小時',icon:'●'};
+  return {cls:'good',text:'新進',icon:'●'};
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function shorten(s,n){
+  s=String(s==null?'':s);
+  return s.length>n?(s.substring(0,n-1)+'…'):s;
+}
+
+/* =========================================================================
+   3. 圖表繪製（純 SVG，樣式以屬性內嵌，方便匯出成圖片）
+   ========================================================================= */
+var SERIES=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300','#4a3aa7','#e34948'];
+var SEQ=['#f0eee9','#cde2fb','#9ec5f4','#5598e7','#2a78d6','#184f95'];
+var INK='#1b1a17', INK2='#57554e', INK3='#8b887f', LINE='#e5e2db', SURFACE='#ffffff';
+var FONT="'Noto Sans TC','PingFang TC','Microsoft JhengHei','Heiti TC',sans-serif";
+var SVGNS='http://www.w3.org/2000/svg';
+
+function el(tag,attrs,text){
+  var n=document.createElementNS(SVGNS,tag);
+  for(var k in attrs) if(attrs[k]!==null&&attrs[k]!==undefined) n.setAttribute(k,attrs[k]);
+  if(text!==undefined&&text!==null) n.textContent=text;
+  return n;
+}
+function svgRoot(w,h){
+  var s=el('svg',{xmlns:SVGNS,'xmlns:xlink':'http://www.w3.org/1999/xlink',
+    viewBox:'0 0 '+w+' '+h,width:w,height:h,'font-family':FONT});
+  s.style.maxWidth='100%';
+  s.style.height='auto';
+  return s;
+}
+function roundedBar(x,y,w,h,r){
+  r=Math.min(r,h/2,Math.max(w,0));
+  if(w<=0.5) w=0.5;
+  if(w<=r) return 'M'+x+' '+y+'h'+w+'v'+h+'h'+(-w)+'z';
+  return 'M'+x+' '+y+'h'+(w-r)+'a'+r+' '+r+' 0 0 1 '+r+' '+r+'v'+(h-2*r)+
+         'a'+r+' '+r+' 0 0 1 '+(-r)+' '+r+'h'+(-(w-r))+'z';
+}
+function roundedCol(x,y,w,h,r){
+  r=Math.min(r,w/2,Math.max(h,0));
+  if(h<=0.5) h=0.5;
+  if(h<=r) return 'M'+x+' '+y+'h'+w+'v'+h+'h'+(-w)+'z';
+  return 'M'+x+' '+(y+r)+'a'+r+' '+r+' 0 0 1 '+r+' '+(-r)+'h'+(w-2*r)+
+         'a'+r+' '+r+' 0 0 1 '+r+' '+r+'v'+(h-r)+'h'+(-w)+'z';
+}
+
+/* ---- Tooltip ---- */
+var tipEl=document.getElementById('tip');
+function bindTip(node,html){
+  node.addEventListener('mouseenter',function(){ tipEl.innerHTML=html; tipEl.classList.add('show'); });
+  node.addEventListener('mousemove',function(e){
+    var x=e.clientX+14,y=e.clientY+16;
+    var r=tipEl.getBoundingClientRect();
+    if(x+r.width>window.innerWidth-10) x=e.clientX-r.width-14;
+    if(y+r.height>window.innerHeight-10) y=e.clientY-r.height-16;
+    tipEl.style.left=x+'px'; tipEl.style.top=y+'px';
+  });
+  node.addEventListener('mouseleave',function(){ tipEl.classList.remove('show'); });
+  node.setAttribute('tabindex','0');
+  node.addEventListener('focus',function(){
+    var b=node.getBoundingClientRect();
+    tipEl.innerHTML=html; tipEl.classList.add('show');
+    tipEl.style.left=(b.left)+'px'; tipEl.style.top=(b.bottom+8)+'px';
+  });
+  node.addEventListener('blur',function(){ tipEl.classList.remove('show'); });
+}
+
+/* ---- 橫向長條圖（標籤在上、長條在下，適合中文長標籤）---- */
+function barList(container,items,opts){
+  opts=opts||{};
+  container.innerHTML='';
+  if(!items.length){ container.innerHTML='<div class="empty-line">此期間沒有資料。</div>'; return null; }
+  var W=620, rowH=opts.rowH||44, padTop=6;
+  var H=padTop+items.length*rowH+4;
+  var svg=svgRoot(W,H);
+  var total=items.reduce(function(a,b){ return a+b.value; },0);
+  var max=Math.max.apply(null,items.map(function(i){ return i.value; }));
+  var barX=0, barW=W-58;
+  items.forEach(function(it,i){
+    var y=padTop+i*rowH;
+    var g=el('g',{});
+    g.appendChild(el('text',{x:0,y:y+13,'font-size':13,fill:INK,'font-weight':'500'},shorten(it.label,26)));
+    g.appendChild(el('text',{x:W,y:y+13,'font-size':13,fill:INK2,'text-anchor':'end',
+      'font-weight':'700','font-variant-numeric':'tabular-nums'},
+      it.value+(opts.unit||' 件')+(total?('　'+Math.round(it.value/total*100)+'%'):'')));
+    g.appendChild(el('rect',{x:barX,y:y+22,width:barW,height:10,rx:5,fill:'#f2f0ec'}));
+    var w=max>0?Math.max(2,barW*it.value/max):2;
+    g.appendChild(el('path',{d:roundedBar(barX,y+22,w,10,4),fill:it.color||SERIES[0]}));
+    var hit=el('rect',{x:0,y:y,width:W,height:rowH-4,fill:'transparent'});
+    bindTip(hit,'<b>'+esc(it.label)+'</b><br>'+it.value+' 件'+(total?('（占 '+(Math.round(it.value/total*1000)/10)+'%）'):'')+
+      (it.sub?('<br><span class="t-sub">'+esc(it.sub)+'</span>'):''));
+    g.appendChild(hit);
+    svg.appendChild(g);
+  });
+  container.appendChild(svg);
+  return svg;
+}
+
+/* ---- 圓餅圖（環圈）---- */
+function donutChart(container,items,center){
+  container.innerHTML='';
+  var total=items.reduce(function(a,b){ return a+b.value; },0);
+  if(!total){ container.innerHTML='<div class="empty-line">此期間沒有資料。</div>'; return null; }
+  var W=560,H=330,cx=175,cy=165,R=118,r=72;
+  var svg=svgRoot(W,H);
+  var ang=-Math.PI/2;
+  items.forEach(function(it,i){
+    if(it.value<=0) return;
+    var frac=it.value/total, sweep=frac*Math.PI*2;
+    var a0=ang, a1=ang+sweep; ang=a1;
+    var large=sweep>Math.PI?1:0;
+    var p=el('path',{
+      d:'M'+(cx+R*Math.cos(a0))+' '+(cy+R*Math.sin(a0))+
+        'A'+R+' '+R+' 0 '+large+' 1 '+(cx+R*Math.cos(a1))+' '+(cy+R*Math.sin(a1))+
+        'L'+(cx+r*Math.cos(a1))+' '+(cy+r*Math.sin(a1))+
+        'A'+r+' '+r+' 0 '+large+' 0 '+(cx+r*Math.cos(a0))+' '+(cy+r*Math.sin(a0))+'z',
+      fill:it.color,stroke:SURFACE,'stroke-width':2});
+    bindTip(p,'<b>'+esc(it.label)+'</b><br>'+it.value+' 件（'+(Math.round(frac*1000)/10)+'%）');
+    svg.appendChild(p);
+    if(frac>=0.05){
+      var mid=(a0+a1)/2, lx=cx+(R+18)*Math.cos(mid), ly=cy+(R+18)*Math.sin(mid);
+      var anchor=Math.cos(mid)<-0.1?'end':(Math.cos(mid)>0.1?'start':'middle');
+      svg.appendChild(el('text',{x:lx,y:ly+4,'font-size':12.5,fill:INK2,'text-anchor':anchor,'font-weight':'600'},
+        Math.round(frac*100)+'%'));
+    }
+  });
+  if(center){
+    svg.appendChild(el('text',{x:cx,y:cy-16,'font-size':12,fill:INK3,'text-anchor':'middle'},center.top||''));
+    svg.appendChild(el('text',{x:cx,y:cy+16,'font-size':30,fill:'#1c5cab','text-anchor':'middle','font-weight':'700'},center.value||''));
+    svg.appendChild(el('text',{x:cx,y:cy+36,'font-size':11.5,fill:INK3,'text-anchor':'middle'},center.foot||''));
+  }
+  /* 圖例（畫在 SVG 內，匯出圖片時才不會漏掉）*/
+  var lx0=336,ly0=46,rowH=Math.min(38,(H-ly0-14)/Math.max(items.length,1));
+  items.forEach(function(it,i){
+    var y=ly0+i*rowH;
+    if(y>H-16) return;
+    svg.appendChild(el('rect',{x:lx0,y:y-9,width:11,height:11,rx:3,fill:it.color}));
+    svg.appendChild(el('text',{x:lx0+18,y:y,'font-size':12.5,fill:INK2},shorten(it.label,15)));
+    svg.appendChild(el('text',{x:lx0+18,y:y+17,'font-size':12.5,fill:INK,'font-weight':'700'},
+      it.value+' 件（'+Math.round(it.value/total*100)+'%）'));
+  });
+  container.appendChild(svg);
+  return svg;
+}
+
+/* ---- 直向長條圖（每月趨勢）---- */
+function columnChart(container,items,highlightKey){
+  container.innerHTML='';
+  if(!items.length){ container.innerHTML='<div class="empty-line">沒有資料。</div>'; return null; }
+  var W=620,H=250,padL=34,padR=8,padT=14,padB=42;
+  var svg=svgRoot(W,H);
+  var max=Math.max(1,Math.max.apply(null,items.map(function(i){ return i.value; })));
+  var step=Math.max(1,Math.ceil(max/4)), top=step*4;
+  var plotW=W-padL-padR, plotH=H-padT-padB;
+  for(var g=0;g<=4;g++){
+    var v=step*g, y=padT+plotH-(v/top)*plotH;
+    svg.appendChild(el('line',{x1:padL,y1:y,x2:W-padR,y2:y,stroke:LINE,'stroke-width':1}));
+    svg.appendChild(el('text',{x:padL-8,y:y+4,'font-size':11,fill:INK3,'text-anchor':'end'},String(v)));
+  }
+  var slot=plotW/items.length, bw=Math.min(38,slot-10);
+  items.forEach(function(it,i){
+    var x=padL+slot*i+(slot-bw)/2;
+    var h=(it.value/top)*plotH, y=padT+plotH-h;
+    var isHi=(it.key===highlightKey);
+    svg.appendChild(el('path',{d:roundedCol(x,y,bw,Math.max(h,1),4),fill:isHi?'#2a78d6':'#9ec5f4'}));
+    if(it.value>0) svg.appendChild(el('text',{x:x+bw/2,y:y-6,'font-size':11.5,fill:isHi?'#1c5cab':INK2,
+      'text-anchor':'middle','font-weight':'600'},String(it.value)));
+    svg.appendChild(el('text',{x:x+bw/2,y:H-24,'font-size':11.5,fill:isHi?INK:INK3,'text-anchor':'middle',
+      'font-weight':isHi?'700':'400'},it.label));
+    if(it.sub) svg.appendChild(el('text',{x:x+bw/2,y:H-9,'font-size':10,fill:INK3,'text-anchor':'middle'},it.sub));
+    var hit=el('rect',{x:padL+slot*i,y:padT,width:slot,height:plotH,fill:'transparent'});
+    bindTip(hit,'<b>'+esc(it.full||it.label)+'</b><br>'+it.value+' 件');
+    svg.appendChild(hit);
+  });
+  svg.appendChild(el('line',{x1:padL,y1:padT+plotH,x2:W-padR,y2:padT+plotH,stroke:'#d5d1c8','stroke-width':1}));
+  container.appendChild(svg);
+  return svg;
+}
+
+/* ---- 小型數字表格 ---- */
+function miniTable(container,head,rows){
+  var h='<table><thead><tr>';
+  head.forEach(function(t,i){ h+='<th class="'+(i?'n':'')+'">'+esc(t)+'</th>'; });
+  h+='</tr></thead><tbody>';
+  rows.forEach(function(r){
+    h+='<tr>';
+    r.forEach(function(c,i){ h+='<td class="'+(i?'n':'')+'">'+esc(c)+'</td>'; });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  container.innerHTML=h;
+}
+
+/* =========================================================================
+   4. 狀態、計算與畫面
+   ========================================================================= */
+var state={records:[],options:{},sources:[],loadedAt:null,svgs:{},lastStats:null};
+
+function mergeOptions(fileOpts,records){
+  var out={};
+  Object.keys(DEFAULT_OPTIONS).forEach(function(k){
+    var base=(fileOpts&&fileOpts[k]&&fileOpts[k].length)?fileOpts[k].slice():DEFAULT_OPTIONS[k].slice();
+    out[k]=base;
+  });
+  /* 資料中出現、但選項表沒有的值，一律補在後面（使用者自行擴充也不會漏掉）*/
+  var pick={issueType:'issueTypeT',rootCause:'rootCauseT',ownerTeam:'ownerTeamT',handlingTime:'handlingT',applicant:'applicantT'};
+  Object.keys(pick).forEach(function(k){
+    records.forEach(function(r){
+      var v=r[pick[k]];
+      if(v&&v.indexOf('（未')!==0&&out[k].indexOf(v)<0) out[k].push(v);
+    });
+  });
+  return out;
+}
+function orderIndex(list,v){
+  var i=list.indexOf(v);
+  return i<0?9999:i;
+}
+function ownerColor(label){
+  if(!label||label.indexOf('（未判定）')===0) return '#c9c6be';
+  var i=orderIndex(state.options.ownerTeam||[],label);
+  if(i>=8||i===9999){
+    var h=0;
+    for(var k=0;k<label.length;k++) h=(h*31+label.charCodeAt(k))>>>0;
+    return SERIES[h%SERIES.length];
+  }
+  return SERIES[i];
+}
+function isSecurityTeam(label){ return /^資安組/.test(String(label||'')); }
+function isJudged(label){ return !!label && label.indexOf('（未判定）')!==0; }
+
+/* ---- 期間 ---- */
+function rangeMonths(v){ return {all:0,m1:1,m3:3,m6:6,m12:12}[v]||0; }
+function rangeBounds(v){
+  var n=rangeMonths(v);
+  if(!n) return null;
+  var now=new Date();
+  var start=new Date(now.getFullYear(),now.getMonth()-(n-1),1,0,0,0);
+  var end=new Date(now.getFullYear(),now.getMonth()+1,1,0,0,0);
+  var prevStart=new Date(start.getFullYear(),start.getMonth()-n,1,0,0,0);
+  return {start:start,end:end,prevStart:prevStart,prevEnd:start,months:n};
+}
+function inRange(r,b){
+  if(!b) return true;
+  var d=r.registeredAtD;
+  if(!d) return false;
+  return d>=b.start&&d<b.end;
+}
+function countBetween(records,a,b){
+  return records.filter(function(r){ return r.registeredAtD&&r.registeredAtD>=a&&r.registeredAtD<b; }).length;
+}
+function deltaHtml(cur,prev,unitText){
+  if(prev===0&&cur===0) return '<span class="delta flat">與上期同為 0</span>';
+  if(prev===0) return '<span class="delta up">上期 0 件</span>';
+  var diff=cur-prev, pct=Math.round(Math.abs(diff)/prev*100);
+  if(diff===0) return '<span class="delta flat">與上期持平（'+prev+' '+unitText+'）</span>';
+  var cls=diff>0?'up':'down', arrow=diff>0?'▲':'▼';
+  return '<span class="delta '+cls+'">'+arrow+' '+Math.abs(diff)+' '+unitText+'（'+pct+'%）</span>　<span style="color:var(--ink-3)">上期 '+prev+'</span>';
+}
+
+/* ---- 主要繪製 ---- */
+function render(){
+  var recs=state.records;
+  if(!recs.length) return;
+  var b=rangeBounds(document.getElementById('fRange').value);
+  var fOwner=document.getElementById('fOwner').value;
+  var fType=document.getElementById('fType').value;
+  var fApp=document.getElementById('fApplicant').value;
+
+  function passSelect(r){
+    if(fOwner!=='__all'&&r.ownerTeamT!==fOwner) return false;
+    if(fType!=='__all'&&r.issueTypeT!==fType) return false;
+    if(fApp!=='__all'&&r.applicantT!==fApp) return false;
+    return true;
+  }
+  var selected=recs.filter(passSelect);
+  var scoped=selected.filter(function(r){ return inRange(r,b); });
+
+  renderPending(recs);   /* 待辦區永遠顯示全部未結案案件，不受任何篩選影響 */
+  var stats=computeStats(scoped,selected,b);
+  state.lastStats=stats;
+  renderKpi(stats,b);
+  renderCharts(stats,selected);
+  renderMatrix(scoped);
+  renderGuide(scoped);
+
+  var rangeText=b?(fmtDate(b.start)+' ～ 今日（近 '+b.months+' 個月）'):'全部資料';
+  document.getElementById('filterNote').innerHTML=
+    '統計範圍：'+esc(rangeText)+'<br>符合條件 <b>'+scoped.length+'</b> 件（全部 '+recs.length+' 件）';
+  document.getElementById('footNote').innerHTML=
+    '資料來源：'+esc(state.sources.join('、'))+'　·　匯入時間：'+esc(fmtDateTime(state.loadedAt))+
+    '<br>本頁為離線單機檔案，所有計算都在您的電腦上完成，資料不會傳送到任何外部服務。';
+}
+
+function renderPending(recs){
+  var pend=recs.filter(function(r){ return !r.closed; });
+  pend.sort(function(a,b){
+    var ta=a.registeredAtD?a.registeredAtD.getTime():Infinity;
+    var tb=b.registeredAtD?b.registeredAtD.getTime():Infinity;
+    return ta-tb;
+  });
+  var now=new Date();
+  document.getElementById('pendingCount').textContent='未結案 '+pend.length+' 件';
+  var tbl=document.getElementById('pendingTable');
+  var emptyBox=document.getElementById('pendingEmpty');
+  if(!pend.length){ tbl.innerHTML=''; emptyBox.classList.remove('hide'); return; }
+  emptyBox.classList.add('hide');
+  var h='<thead><tr><th style="width:52px">順序</th><th style="width:132px">登記時間</th><th>申請人／單位</th>'+
+        '<th>問題類型</th><th style="width:150px">已等待時長</th><th style="width:104px">等待狀態</th></tr></thead><tbody>';
+  pend.forEach(function(r,i){
+    var wait=r.registeredAtD?(now-r.registeredAtD):0;
+    var lv=r.registeredAtD?waitLevel(wait):{cls:'mute',text:'無登記時間',icon:'—'};
+    h+='<tr>'+
+       '<td><span class="seq'+(i===0?' first':'')+'">'+(i+1)+'</span></td>'+
+       '<td class="num">'+esc(r.registeredAtD?fmtDateTime(r.registeredAtD):toText(r.registeredAt)||'—')+'</td>'+
+       '<td>'+esc(r.applicantT)+(toText(r.caseNo)?'<div class="srcline">'+esc(toText(r.caseNo))+'</div>':'')+'</td>'+
+       '<td>'+esc(r.issueTypeT)+(toText(r.issueTypeOther)?'<div class="srcline">'+esc(shorten(toText(r.issueTypeOther),40))+'</div>':'')+'</td>'+
+       '<td class="num">'+(r.registeredAtD?esc(fmtDuration(wait)):'—')+'</td>'+
+       '<td><span class="badge '+lv.cls+'"><span class="dot" style="background:currentColor"></span>'+lv.text+'</span></td>'+
+       '</tr>';
+  });
+  h+='</tbody>';
+  tbl.innerHTML=h;
+}
+
+function computeStats(scoped,selected,b){
+  var now=new Date();
+  var mStart=new Date(now.getFullYear(),now.getMonth(),1);
+  var mEnd=new Date(now.getFullYear(),now.getMonth()+1,1);
+  var lStart=new Date(now.getFullYear(),now.getMonth()-1,1);
+
+  var byType={},byOwner={},byCause={},byDup={};
+  var minutesArr=[],dupCount=0;
+  scoped.forEach(function(r){
+    byType[r.issueTypeT]=(byType[r.issueTypeT]||0)+1;
+    byOwner[r.ownerTeamT]=(byOwner[r.ownerTeamT]||0)+1;
+    byCause[r.rootCauseT]=(byCause[r.rootCauseT]||0)+1;
+    if(r.minutes!=null) minutesArr.push(r.minutes);
+    if(r.dup){ dupCount++; byDup[r.applicantT]=(byDup[r.applicantT]||0)+1; }
+  });
+  var judged=scoped.filter(function(r){ return isJudged(r.ownerTeamT); });
+  var nonSec=judged.filter(function(r){ return !isSecurityTeam(r.ownerTeamT); });
+  var totalMin=minutesArr.reduce(function(a,c){ return a+c; },0);
+
+  /* 每月趨勢：近 12 個月 */
+  var trend=[];
+  for(var i=11;i>=0;i--){
+    var d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    var key=monthKey(d);
+    trend.push({key:key,label:monthLabel(key),full:d.getFullYear()+' 年 '+(d.getMonth()+1)+' 月',
+      sub:(d.getMonth()===0||i===11)?String(d.getFullYear()):'',value:0});
+  }
+  var tmap={}; trend.forEach(function(t){ tmap[t.key]=t; });
+  selected.forEach(function(r){
+    if(!r.registeredAtD) return;
+    var t=tmap[monthKey(r.registeredAtD)];
+    if(t) t.value++;
+  });
+
+  return {
+    scoped:scoped, selected:selected,
+    total:scoped.length,
+    prevTotal:b?countBetween(selected,b.prevStart,b.prevEnd):0,
+    thisMonth:countBetween(selected,mStart,mEnd),
+    lastMonth:countBetween(selected,lStart,mStart),
+    open:selected.filter(function(r){ return !r.closed; }).length,
+    byType:byType, byOwner:byOwner, byCause:byCause, byDup:byDup,
+    dupCount:dupCount,
+    avgMin:minutesArr.length?(totalMin/minutesArr.length):null,
+    totalHours:totalMin/60,
+    timedCount:minutesArr.length,
+    judgedCount:judged.length,
+    nonSecCount:nonSec.length,
+    nonSecPct:judged.length?Math.round(nonSec.length/judged.length*1000)/10:null,
+    trend:trend,
+    monthKeyNow:monthKey(now)
+  };
+}
+
+function kpiCard(label,value,unit,foot,accent){
+  return '<div class="kpi'+(accent?' accent':'')+'">'+
+    '<div class="k-label">'+label+'</div>'+
+    '<div class="k-value">'+value+(unit?'<span class="unit">'+unit+'</span>':'')+'</div>'+
+    '<div class="k-foot">'+(foot||'')+'</div></div>';
+}
+function renderKpi(s,b){
+  var pend=state.records.filter(function(r){ return !r.closed; });
+  var oldest=null,now=new Date();
+  pend.forEach(function(r){ if(r.registeredAtD&&(!oldest||r.registeredAtD<oldest)) oldest=r.registeredAtD; });
+  var rangeName=b?('近 '+b.months+' 個月'):'全部期間';
+  var h='';
+  h+=kpiCard('待辦（未結案）',pend.length,' 件',oldest?('最久已等待 '+fmtDuration(now-oldest)):'—');
+  h+=kpiCard('本月新增案件',s.thisMonth,' 件',deltaHtml(s.thisMonth,s.lastMonth,'件'));
+  h+=kpiCard(rangeName+'案件數',s.total,' 件',b?deltaHtml(s.total,s.prevTotal,'件'):'（未設定期間，無上期可比較）');
+  h+=kpiCard('平均處理耗時',s.avgMin==null?'—':Math.round(s.avgMin),s.avgMin==null?'':' 分鐘',
+      s.timedCount?('依 '+s.timedCount+' 件已填耗時的案件計算'):'尚無耗時資料');
+  h+=kpiCard('累計投入人時',Math.round(s.totalHours*10)/10,' 人時',
+      s.timedCount?('相當於 '+(Math.round(s.totalHours/8*10)/10)+' 個工作天'):'尚無耗時資料');
+  h+=kpiCard('非資安組責任占比',s.nonSecPct==null?'—':s.nonSecPct,s.nonSecPct==null?'':' %',
+      s.judgedCount?(s.nonSecCount+' / '+s.judgedCount+' 件其實不該由資安組承接'):'尚無已判定責任的案件',true);
+  document.getElementById('kpiGrid').innerHTML=h;
+}
+
+function sortedEntries(obj,order){
+  var arr=Object.keys(obj).map(function(k){ return {label:k,value:obj[k]}; });
+  arr.sort(function(a,b){
+    if(b.value!==a.value) return b.value-a.value;
+    return orderIndex(order||[],a.label)-orderIndex(order||[],b.label);
+  });
+  return arr;
+}
+
+function renderCharts(s,selected){
+  /* 責任單位圓餅圖 */
+  var ownerArr=Object.keys(s.byOwner).map(function(k){ return {label:k,value:s.byOwner[k],color:ownerColor(k)}; });
+  ownerArr.sort(function(a,b){
+    var ia=orderIndex(state.options.ownerTeam||[],a.label), ib=orderIndex(state.options.ownerTeam||[],b.label);
+    if(ia!==ib) return ia-ib;
+    return b.value-a.value;
+  });
+  state.svgs.owner=donutChart(document.getElementById('chartOwner'),ownerArr,
+    s.nonSecPct==null?null:{top:'非資安組責任',value:s.nonSecPct+'%',foot:s.nonSecCount+' / '+s.judgedCount+' 件（已判定）'});
+  var lg='';
+  ownerArr.forEach(function(it){
+    lg+='<span class="legend-item"><span class="legend-swatch" style="background:'+it.color+'"></span>'+esc(it.label)+'</span>';
+  });
+  document.getElementById('legendOwner').innerHTML=lg;
+  miniTable(document.getElementById('tblOwner'),['責任單位','件數','占比'],
+    ownerArr.map(function(i){ return [i.label,i.value,(s.total?Math.round(i.value/s.total*1000)/10:0)+'%']; }));
+
+  /* 問題類型長條圖 */
+  var typeArr=sortedEntries(s.byType,state.options.issueType).map(function(i){
+    return {label:i.label,value:i.value,color:SERIES[0]};
+  });
+  state.svgs.type=barList(document.getElementById('chartType'),typeArr);
+  miniTable(document.getElementById('tblType'),['問題類型','件數','占比'],
+    typeArr.map(function(i){ return [i.label,i.value,(s.total?Math.round(i.value/s.total*1000)/10:0)+'%']; }));
+
+  /* 每月趨勢 */
+  state.svgs.trend=columnChart(document.getElementById('chartTrend'),s.trend,s.monthKeyNow);
+  miniTable(document.getElementById('tblTrend'),['月份','件數'],
+    s.trend.map(function(t){ return [t.full,t.value]; }));
+
+  /* 重複案件 Top5 */
+  var dupArr=sortedEntries(s.byDup,[]).slice(0,5).map(function(i){
+    return {label:i.label,value:i.value,color:SERIES[0]};
+  });
+  if(!dupArr.length){
+    document.getElementById('chartDup').innerHTML='<div class="empty-line">此期間沒有標記為「重複案件」的紀錄。</div>';
+    state.svgs.dup=null;
+    miniTable(document.getElementById('tblDup'),['申請人／單位','重複件數'],[]);
+  }else{
+    state.svgs.dup=barList(document.getElementById('chartDup'),dupArr);
+    miniTable(document.getElementById('tblDup'),['申請人／單位','重複件數'],
+      dupArr.map(function(i){ return [i.label,i.value]; }));
+  }
+}
+
+function renderMatrix(scoped){
+  var typeOrder=(state.options.issueType||[]).slice();
+  var causeOrder=(state.options.rootCause||[]).slice();
+  var types=[],causes=[],cell={},rowTot={},colTot={},max=0;
+  scoped.forEach(function(r){
+    var t=r.issueTypeT,c=r.rootCauseT;
+    if(types.indexOf(t)<0) types.push(t);
+    if(causes.indexOf(c)<0) causes.push(c);
+    var k=t+'||'+c;
+    cell[k]=(cell[k]||0)+1;
+    rowTot[t]=(rowTot[t]||0)+1;
+    colTot[c]=(colTot[c]||0)+1;
+    if(cell[k]>max) max=cell[k];
+  });
+  var wrap=document.getElementById('matrixWrap');
+  if(!types.length){ wrap.innerHTML='<div class="empty-line">此期間沒有資料。</div>'; return; }
+  types.sort(function(a,b){ var d=orderIndex(typeOrder,a)-orderIndex(typeOrder,b); return d||(rowTot[b]-rowTot[a]); });
+  causes.sort(function(a,b){ var d=orderIndex(causeOrder,a)-orderIndex(causeOrder,b); return d||(colTot[b]-colTot[a]); });
+
+  var h='<table class="matrix"><thead><tr><th class="rowhead">問題類型　＼　實際原因</th>';
+  causes.forEach(function(c){ h+='<th title="'+esc(c)+'">'+esc(shorten(c,8))+'</th>'; });
+  h+='<th>合計</th></tr></thead><tbody>';
+  types.forEach(function(t){
+    h+='<tr><th class="rowhead" title="'+esc(t)+'">'+esc(t)+'</th>';
+    causes.forEach(function(c){
+      var v=cell[t+'||'+c]||0;
+      var idx=v===0?0:Math.min(5,1+Math.round((v/max)*4));
+      var color=SEQ[idx], fg=idx>=4?'#ffffff':INK;
+      h+='<td class="'+(v?'':'zero')+'" title="'+esc(t)+' × '+esc(c)+'：'+v+' 件">'+
+         '<div class="cellbox" style="background:'+(v?color:'transparent')+';color:'+(v?fg:'')+'">'+(v||'·')+'</div></td>';
+    });
+    h+='<td class="total"><div class="cellbox">'+(rowTot[t]||0)+'</div></td></tr>';
+  });
+  h+='<tr><th class="rowhead">合計</th>';
+  causes.forEach(function(c){ h+='<td class="total"><div class="cellbox">'+(colTot[c]||0)+'</div></td>'; });
+  h+='<td class="total"><div class="cellbox">'+scoped.length+'</div></td></tr>';
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+function renderGuide(scoped){
+  var byType={};
+  scoped.forEach(function(r){
+    var t=r.issueTypeT;
+    if(!byType[t]) byType[t]={n:0,owner:{},cause:{}};
+    byType[t].n++;
+    if(isJudged(r.ownerTeamT)) byType[t].owner[r.ownerTeamT]=(byType[t].owner[r.ownerTeamT]||0)+1;
+    if(r.rootCauseT.indexOf('（未判定）')!==0) byType[t].cause[r.rootCauseT]=(byType[t].cause[r.rootCauseT]||0)+1;
+  });
+  function top(o){
+    var k=Object.keys(o),best=null;
+    k.forEach(function(x){ if(!best||o[x]>o[best]) best=x; });
+    return best?{label:best,n:o[best]}:null;
+  }
+  var rows=Object.keys(byType).map(function(t){
+    var d=byType[t],o=top(d.owner),c=top(d.cause);
+    var judged=Object.keys(d.owner).reduce(function(a,k){ return a+d.owner[k]; },0);
+    return {type:t,n:d.n,owner:o,cause:c,rate:(o&&judged)?Math.round(o.n/judged*100):null};
+  });
+  rows.sort(function(a,b){ return b.n-a.n; });
+  var tbl=document.getElementById('guideTable');
+  if(!rows.length){ tbl.innerHTML='<tbody><tr><td class="empty-line">此期間沒有資料。</td></tr></tbody>'; return; }
+  var h='<thead><tr><th>問題類型（症狀）</th><th style="width:70px">件數</th><th>最常見實際原因</th>'+
+        '<th>建議先找</th><th style="width:110px">命中率</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    var conf=r.n<3?'<span class="badge mute">樣本不足</span>':'';
+    h+='<tr><td>'+esc(r.type)+'</td><td class="num">'+r.n+'</td>'+
+       '<td>'+esc(r.cause?r.cause.label:'—')+'</td>'+
+       '<td>'+(r.owner?('<span class="badge mute"><span class="dot" style="background:'+ownerColor(r.owner.label)+'"></span>'+esc(shorten(r.owner.label,18))+'</span>'):'—')+'</td>'+
+       '<td class="num">'+(r.rate==null?'—':(r.rate+'%'))+' '+conf+'</td></tr>';
+  });
+  h+='</tbody>';
+  tbl.innerHTML=h;
+}
+
+/* =========================================================================
+   5. 匯入檔案
+   ========================================================================= */
+function readFileBuf(file){
+  return new Promise(function(res,rej){
+    var fr=new FileReader();
+    fr.onload=function(){ res(fr.result); };
+    fr.onerror=function(){ rej(new Error('無法讀取檔案：'+file.name)); };
+    fr.readAsArrayBuffer(file);
+  });
+}
+function showError(msg){
+  var box=document.getElementById('loadError');
+  box.innerHTML='<b>匯入失敗：</b>'+esc(msg)+
+    '<br>請確認匯出的是「案件登記」工作表，且第一列為欄位標題（需含「登記時間」等欄位）。';
+  box.classList.remove('hide');
+}
+async function loadFiles(fileList){
+  var files=Array.prototype.slice.call(fileList);
+  if(!files.length) return;
+  document.getElementById('loadError').classList.add('hide');
+  var caseRows=null,optRows=null,names=[];
+  try{
+    for(var i=0;i<files.length;i++){
+      var f=files[i],lower=f.name.toLowerCase();
+      names.push(f.name);
+      var buf=await readFileBuf(f);
+      if(/\.xlsx$/.test(lower)){
+        var sheets=parseXlsx(buf);
+        sheets.forEach(function(sh){
+          if(/選項|options?/i.test(sh.name)){ if(!optRows) optRows=sh.rows; return; }
+          if(looksLikeCaseSheet(sh.rows)){
+            if(!caseRows||/案件登記/.test(sh.name)) caseRows=sh.rows;
+            return;
+          }
+          if(!optRows&&looksLikeOptionSheet(sh.rows)) optRows=sh.rows;
+        });
+      }else if(/\.xls$/.test(lower)){
+        throw new Error('不支援舊版 .xls 格式，請在 Excel 或 NAS 上另存為 .xlsx 或 .csv');
+      }else{
+        var rows=parseCsv(decodeTextBytes(buf));
+        if(looksLikeCaseSheet(rows)){ if(!caseRows) caseRows=rows; }
+        else if(looksLikeOptionSheet(rows)){ if(!optRows) optRows=rows; }
+      }
+    }
+    if(!caseRows) throw new Error('在檔案中找不到「案件登記」的資料表');
+    var records=buildRecords(caseRows);
+    if(!records.length) throw new Error('「案件登記」表中沒有任何案件資料列');
+    state.records=records;
+    state.options=mergeOptions(buildOptions(optRows),records);
+    state.sources=names;
+    state.loadedAt=new Date();
+    document.getElementById('sourceLine').textContent=
+      names.join('、')+'　·　共 '+records.length+' 件'+(optRows?'　·　已套用「選項」工作表':'　·　使用內建預設選項');
+    document.getElementById('dropzone').classList.add('hide');
+    document.getElementById('main').classList.remove('hide');
+    ['btnPng','btnCsv','btnPrint'].forEach(function(id){ document.getElementById(id).disabled=false; });
+    populateFilters();
+    render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  }catch(err){
+    console.error(err);
+    showError(err&&err.message?err.message:String(err));
+    document.getElementById('dropzone').classList.remove('hide');
+  }
+}
+function populateFilters(){
+  function fill(id,list,keepValue){
+    var sel=document.getElementById(id),prev=keepValue?sel.value:'__all';
+    var h='<option value="__all">全部</option>';
+    list.forEach(function(v){ h+='<option value="'+esc(v)+'">'+esc(shorten(v,28))+'</option>'; });
+    sel.innerHTML=h;
+    if(prev&&list.indexOf(prev)>=0) sel.value=prev; else sel.value='__all';
+  }
+  function present(field){
+    var seen=[];
+    state.records.forEach(function(r){ if(seen.indexOf(r[field])<0) seen.push(r[field]); });
+    return seen;
+  }
+  var owners=present('ownerTeamT').sort(function(a,b){ return orderIndex(state.options.ownerTeam||[],a)-orderIndex(state.options.ownerTeam||[],b); });
+  var types=present('issueTypeT').sort(function(a,b){ return orderIndex(state.options.issueType||[],a)-orderIndex(state.options.issueType||[],b); });
+  var apps=present('applicantT').sort();
+  fill('fOwner',owners,true); fill('fType',types,true); fill('fApplicant',apps,true);
+}
+
+/* =========================================================================
+   6. 匯出
+   ========================================================================= */
+function csvCell(v){
+  var s=String(v==null?'':v);
+  return /[",\r\n]/.test(s)?('"'+s.replace(/"/g,'""')+'"'):s;
+}
+var toastTimer=null;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); },4200);
+}
+function downloadBlob(blob,filename){
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },1500);
+}
+function exportCsv(){
+  var s=state.lastStats; if(!s) return;
+  var b=rangeBounds(document.getElementById('fRange').value);
+  var rows=[];
+  rows.push(['連線異常查詢案件　統計結果']);
+  rows.push(['產生時間',fmtDateTime(new Date())]);
+  rows.push(['統計範圍',b?(fmtDate(b.start)+' ～ 今日（近 '+b.months+' 個月）'):'全部資料']);
+  rows.push(['責任單位篩選',document.getElementById('fOwner').value==='__all'?'全部':document.getElementById('fOwner').value]);
+  rows.push(['問題類型篩選',document.getElementById('fType').value==='__all'?'全部':document.getElementById('fType').value]);
+  rows.push(['申請人篩選',document.getElementById('fApplicant').value==='__all'?'全部':document.getElementById('fApplicant').value]);
+  rows.push([]);
+  rows.push(['【關鍵指標】']);
+  rows.push(['指標','數值','說明']);
+  var pend=state.records.filter(function(r){ return !r.closed; });
+  rows.push(['待辦（未結案）',pend.length+' 件','全部資料，不受期間篩選影響']);
+  rows.push(['本月新增',s.thisMonth+' 件','上月 '+s.lastMonth+' 件']);
+  rows.push(['期間案件數',s.total+' 件','上期 '+s.prevTotal+' 件']);
+  rows.push(['平均處理耗時',(s.avgMin==null?'—':Math.round(s.avgMin)+' 分鐘'),'依 '+s.timedCount+' 件已填耗時案件計算']);
+  rows.push(['累計投入人時',(Math.round(s.totalHours*10)/10)+' 人時','約 '+(Math.round(s.totalHours/8*10)/10)+' 個工作天']);
+  rows.push(['非資安組責任占比',(s.nonSecPct==null?'—':s.nonSecPct+'%'),s.nonSecCount+' / '+s.judgedCount+' 件']);
+  rows.push(['重複案件件數',s.dupCount+' 件','']);
+  rows.push([]);
+  rows.push(['【責任單位占比】']);
+  rows.push(['責任單位','件數','占比']);
+  Object.keys(s.byOwner).forEach(function(k){
+    rows.push([k,s.byOwner[k],(s.total?Math.round(s.byOwner[k]/s.total*1000)/10:0)+'%']);
+  });
+  rows.push([]);
+  rows.push(['【問題類型分布】']);
+  rows.push(['問題類型','件數','占比']);
+  sortedEntries(s.byType,state.options.issueType).forEach(function(i){
+    rows.push([i.label,i.value,(s.total?Math.round(i.value/s.total*1000)/10:0)+'%']);
+  });
+  rows.push([]);
+  rows.push(['【實際原因分布】']);
+  rows.push(['實際原因','件數']);
+  sortedEntries(s.byCause,state.options.rootCause).forEach(function(i){ rows.push([i.label,i.value]); });
+  rows.push([]);
+  rows.push(['【每月案件量（近 12 個月）】']);
+  rows.push(['月份','件數']);
+  s.trend.forEach(function(t){ rows.push([t.full,t.value]); });
+  rows.push([]);
+  rows.push(['【重複案件 Top 5】']);
+  rows.push(['申請人／單位','重複件數']);
+  sortedEntries(s.byDup,[]).slice(0,5).forEach(function(i){ rows.push([i.label,i.value]); });
+  rows.push([]);
+  rows.push(['【症狀對照表：問題類型 × 實際原因】']);
+  var types=[],causes=[],cell={};
+  s.scoped.forEach(function(r){
+    if(types.indexOf(r.issueTypeT)<0) types.push(r.issueTypeT);
+    if(causes.indexOf(r.rootCauseT)<0) causes.push(r.rootCauseT);
+    var k=r.issueTypeT+'||'+r.rootCauseT; cell[k]=(cell[k]||0)+1;
+  });
+  types.sort(function(a,b){ return orderIndex(state.options.issueType||[],a)-orderIndex(state.options.issueType||[],b); });
+  causes.sort(function(a,b){ return orderIndex(state.options.rootCause||[],a)-orderIndex(state.options.rootCause||[],b); });
+  rows.push(['問題類型＼實際原因'].concat(causes).concat(['合計']));
+  types.forEach(function(t){
+    var line=[t],sum=0;
+    causes.forEach(function(c){ var v=cell[t+'||'+c]||0; sum+=v; line.push(v||''); });
+    line.push(sum);
+    rows.push(line);
+  });
+  rows.push([]);
+  rows.push(['【待辦清單（未結案，依登記時間排序）】']);
+  rows.push(['順序','登記時間','申請人／單位','問題類型','已等待時長']);
+  var now=new Date();
+  pend.slice().sort(function(a,b){
+    return (a.registeredAtD?a.registeredAtD.getTime():Infinity)-(b.registeredAtD?b.registeredAtD.getTime():Infinity);
+  }).forEach(function(r,i){
+    rows.push([i+1,fmtDateTime(r.registeredAtD),r.applicantT,r.issueTypeT,r.registeredAtD?fmtDuration(now-r.registeredAtD):'']);
+  });
+
+  var text='﻿'+rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n');
+  var fname='連線異常查詢案件_統計結果_'+fmtDate(new Date()).replace(/\//g,'')+'.csv';
+  downloadBlob(new Blob([text],{type:'text/csv;charset=utf-8'}),fname);
+  showToast('已匯出 '+fname+'（請查看瀏覽器的下載項目）');
+}
+
+/* ---- PNG ---- */
+function svgToImage(svg){
+  return new Promise(function(res,rej){
+    if(!svg){ res(null); return; }
+    var clone=svg.cloneNode(true);
+    clone.setAttribute('xmlns',SVGNS);
+    var str=new XMLSerializer().serializeToString(clone);
+    var bytes=new TextEncoder().encode(str),bin='';
+    for(var i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    var img=new Image();
+    img.onload=function(){ res(img); };
+    img.onerror=function(){ res(null); };
+    img.src='data:image/svg+xml;base64,'+btoa(bin);
+  });
+}
+async function exportPng(){
+  var s=state.lastStats; if(!s) return;
+  var btn=document.getElementById('btnPng');
+  btn.disabled=true; btn.textContent='產生中…';
+  try{
+    var imgs=await Promise.all([svgToImage(state.svgs.owner),svgToImage(state.svgs.type),
+                                svgToImage(state.svgs.trend),svgToImage(state.svgs.dup)]);
+    var W=1200,SC=2,PAD=44,GAP=22;
+    var tmp=document.createElement('canvas');
+    tmp.width=W*SC; tmp.height=3200*SC;
+    var ctx=tmp.getContext('2d');
+    ctx.scale(SC,SC);
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,W,3200);
+    function txt(t,x,y,size,weight,color,align){
+      ctx.font=(weight||'400')+' '+size+'px '+FONT;
+      ctx.fillStyle=color||INK;
+      ctx.textAlign=align||'left';
+      ctx.textBaseline='alphabetic';
+      ctx.fillText(t,x,y);
+      ctx.textAlign='left';
+    }
+    var y=PAD+16;
+    txt('連線異常查詢案件　統計結果',PAD,y+16,27,'700',INK); y+=34;
+    var b=rangeBounds(document.getElementById('fRange').value);
+    txt('統計範圍：'+(b?(fmtDate(b.start)+' ～ '+fmtDate(new Date())+'（近 '+b.months+' 個月）'):'全部資料')+
+        '　·　符合條件 '+s.total+' 件　·　產生時間 '+fmtDateTime(new Date()),PAD,y+16,13.5,'400',INK2);
+    y+=36;
+    ctx.fillStyle=LINE; ctx.fillRect(PAD,y,W-PAD*2,1); y+=26;
+
+    /* KPI */
+    var pend=state.records.filter(function(r){ return !r.closed; });
+    var kpis=[
+      ['待辦（未結案）',pend.length+' 件','全部資料'],
+      ['本月新增案件',s.thisMonth+' 件','上月 '+s.lastMonth+' 件'],
+      ['期間案件數',s.total+' 件','上期 '+s.prevTotal+' 件'],
+      ['平均處理耗時',(s.avgMin==null?'—':Math.round(s.avgMin)+' 分鐘'),'依 '+s.timedCount+' 件計算'],
+      ['累計投入人時',(Math.round(s.totalHours*10)/10)+' 人時','約 '+(Math.round(s.totalHours/8*10)/10)+' 個工作天'],
+      ['非資安組責任占比',(s.nonSecPct==null?'—':s.nonSecPct+' %'),s.nonSecCount+' / '+s.judgedCount+' 件']
+    ];
+    var kw=(W-PAD*2-GAP*2)/3, kh=96;
+    kpis.forEach(function(k,i){
+      var col=i%3, row=Math.floor(i/3);
+      var x=PAD+col*(kw+GAP), yy=y+row*(kh+GAP*0.7);
+      var accent=(i===5);
+      ctx.fillStyle=accent?'#f2f7fe':'#fbfaf7'; ctx.strokeStyle=accent?'#d6e4f8':LINE; ctx.lineWidth=1;
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(x,yy,kw,kh,12); else ctx.rect(x,yy,kw,kh);
+      ctx.fill(); ctx.stroke();
+      txt(k[0],x+18,yy+26,13,'600',INK3);
+      txt(k[1],x+18,yy+60,26,'700',accent?'#1c5cab':INK);
+      txt(k[2],x+18,yy+81,12,'400',INK3);
+    });
+    y+=kh*2+GAP*0.7+28;
+
+    /* 圖表：兩欄 */
+    var cw=(W-PAD*2-GAP)/2;
+    function drawChart(img,title,x,yy,maxW){
+      txt(title,x,yy+14,15.5,'700',INK);
+      if(!img) { txt('（此期間沒有資料）',x,yy+40,13,'400',INK3); return 56; }
+      var scale=Math.min(1,maxW/img.width);
+      var w=img.width*scale,h=img.height*scale;
+      ctx.drawImage(img,x,yy+26,w,h);
+      return 26+h+18;
+    }
+    var h1=drawChart(imgs[0],'責任單位占比（關鍵指標）',PAD,y,cw);
+    var h2=drawChart(imgs[1],'問題類型分布',PAD+cw+GAP,y,cw);
+    y+=Math.max(h1,h2)+10;
+    var h3=drawChart(imgs[2],'每月案件量趨勢（近 12 個月）',PAD,y,cw);
+    var h4=drawChart(imgs[3],'重複案件 Top 5',PAD+cw+GAP,y,cw);
+    y+=Math.max(h3,h4)+16;
+
+    /* 症狀 → 建議先找 */
+    txt('症狀 → 建議先找哪一組',PAD,y+14,15.5,'700',INK); y+=32;
+    var guideRows=[];
+    var byType={};
+    s.scoped.forEach(function(r){
+      var t=r.issueTypeT;
+      if(!byType[t]) byType[t]={n:0,owner:{},cause:{}};
+      byType[t].n++;
+      if(isJudged(r.ownerTeamT)) byType[t].owner[r.ownerTeamT]=(byType[t].owner[r.ownerTeamT]||0)+1;
+      if(r.rootCauseT.indexOf('（未判定）')!==0) byType[t].cause[r.rootCauseT]=(byType[t].cause[r.rootCauseT]||0)+1;
+    });
+    Object.keys(byType).forEach(function(t){
+      var d=byType[t],bestO=null,bestC=null,judged=0;
+      Object.keys(d.owner).forEach(function(k){ judged+=d.owner[k]; if(!bestO||d.owner[k]>d.owner[bestO]) bestO=k; });
+      Object.keys(d.cause).forEach(function(k){ if(!bestC||d.cause[k]>d.cause[bestC]) bestC=k; });
+      guideRows.push([t,d.n,bestC||'—',bestO||'—',(bestO&&judged)?Math.round(d.owner[bestO]/judged*100)+'%':'—']);
+    });
+    guideRows.sort(function(a,b){ return b[1]-a[1]; });
+    var cols=[PAD,PAD+330,PAD+400,PAD+740,PAD+1080];
+    txt('問題類型',cols[0],y+14,12.5,'700',INK3);
+    txt('件數',cols[1],y+14,12.5,'700',INK3);
+    txt('最常見實際原因',cols[2],y+14,12.5,'700',INK3);
+    txt('建議先找',cols[3],y+14,12.5,'700',INK3);
+    txt('命中率',cols[4],y+14,12.5,'700',INK3);
+    y+=22;
+    ctx.fillStyle=LINE; ctx.fillRect(PAD,y,W-PAD*2,1); y+=6;
+    guideRows.slice(0,12).forEach(function(r){
+      txt(shorten(r[0],22),cols[0],y+17,13,'500',INK);
+      txt(String(r[1]),cols[1],y+17,13,'400',INK2);
+      txt(shorten(r[2],20),cols[2],y+17,13,'400',INK2);
+      txt(shorten(r[3],20),cols[3],y+17,13,'600',INK);
+      txt(r[4],cols[4],y+17,13,'400',INK2);
+      y+=26;
+      ctx.fillStyle='#f1efea'; ctx.fillRect(PAD,y-4,W-PAD*2,1);
+    });
+    y+=18;
+    txt('資料來源：'+state.sources.join('、')+'　·　本統計由「連線異常查詢案件控制台」離線產生',PAD,y,12,'400',INK3);
+    y+=26;
+
+    /* 裁切到實際高度 */
+    var out=document.createElement('canvas');
+    out.width=W*SC; out.height=Math.ceil(y*SC);
+    var octx=out.getContext('2d');
+    octx.fillStyle='#ffffff'; octx.fillRect(0,0,out.width,out.height);
+    octx.drawImage(tmp,0,0);
+    var dataUrl=out.toDataURL('image/png');
+    document.getElementById('pngPreview').src=dataUrl;
+    document.getElementById('pngDownload').href=dataUrl;
+    document.getElementById('pngDownload').download='連線異常查詢案件_統計圖_'+fmtDate(new Date()).replace(/\//g,'')+'.png';
+    document.getElementById('pngModal').classList.add('show');
+    out.toBlob&&out.toBlob(function(blob){
+      if(blob) document.getElementById('pngDownload').href=URL.createObjectURL(blob);
+    },'image/png');
+  }catch(err){
+    console.error(err);
+    alert('產生圖片時發生問題：'+(err&&err.message?err.message:err)+'\n可改用「列印／存成 PDF」。');
+  }finally{
+    btn.disabled=false; btn.textContent='匯出統計圖（PNG）';
+  }
+}
+
+/* =========================================================================
+   7. 事件綁定
+   ========================================================================= */
+var fileInput=document.getElementById('fileInput');
+document.getElementById('btnPick').addEventListener('click',function(){ fileInput.click(); });
+document.getElementById('dropzone').addEventListener('click',function(){ fileInput.click(); });
+fileInput.addEventListener('change',function(){ loadFiles(fileInput.files); fileInput.value=''; });
+
+var dz=document.getElementById('dropzone');
+['dragenter','dragover'].forEach(function(ev){
+  document.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.add('hot'); });
+});
+['dragleave','drop'].forEach(function(ev){
+  document.addEventListener(ev,function(e){ e.preventDefault(); if(ev==='drop'||e.target===dz) dz.classList.remove('hot'); });
+});
+document.addEventListener('drop',function(e){
+  e.preventDefault();
+  if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+});
+
+['fRange','fOwner','fType','fApplicant'].forEach(function(id){
+  document.getElementById(id).addEventListener('change',render);
+});
+document.addEventListener('click',function(e){
+  var t=e.target;
+  if(t&&t.classList&&t.classList.contains('table-toggle')){
+    var box=document.getElementById(t.getAttribute('data-target'));
+    if(box){
+      box.classList.toggle('show');
+      t.textContent=box.classList.contains('show')?'隱藏數字表格':'顯示數字表格';
+    }
+  }
+});
+document.getElementById('btnCsv').addEventListener('click',exportCsv);
+document.getElementById('btnPng').addEventListener('click',exportPng);
+document.getElementById('btnPrint').addEventListener('click',function(){ window.print(); });
+document.getElementById('pngClose').addEventListener('click',function(){
+  document.getElementById('pngModal').classList.remove('show');
+});
+document.getElementById('pngModal').addEventListener('click',function(e){
+  if(e.target===this) this.classList.remove('show');
+});
+window.addEventListener('resize',function(){ if(state.records.length) render(); });
+</script>
+</body>
+</html>
