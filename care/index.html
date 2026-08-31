@@ -304,6 +304,12 @@ textarea{
 .gmsg{font-size:13px; margin-top:12px; line-height:1.7; min-height:20px;}
 .gmsg.bad{color:var(--red);}
 .gmsg.good{color:var(--accent-ink);}
+.namechips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+.namechips button{
+  border:1px solid var(--line); background:var(--surface); border-radius:999px;
+  padding:8px 15px; font-size:15px; color:var(--ink);
+}
+.namechips button[aria-pressed="true"]{background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700;}
 .devchip{
   display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px; font-weight:600;
   background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:4px 9px; color:var(--ink-2);
@@ -431,6 +437,15 @@ var ST_MAP = {}; STATUS.forEach(function(s){ST_MAP[s.v]=s.t;});
 /* ============ 版本（要跟 Apps Script 的 APP_VERSION 對應） ============ */
 var APP_VERSION = 2;
 
+/* ============================================================
+ * 雲端網址：直接寫在這裡，家人就不必自己輸入一長串網址。
+ * 換試算表或重新部署後網址變了，改這一行即可。
+ * ==========================================================*/
+var DEFAULT_API = "https://script.google.com/macros/s/AKfycbxQqsFjIl-kLk94UnVRvtT5cePu0r6jrUrPIbJQvJH9NnzLRvLxNxUS_-mV6m34A0HFkw/exec";
+
+/* 讓長輩一按就好的常用稱呼 */
+var NAME_CHIPS = ["爸爸", "媽媽", "大哥", "大姊", "小妹", "阿美"];
+
 /* ============ 儲存 ============ */
 var CFGKEY = "tc-ltc-cfg-v1", KEY = "tc-ltc-transport-v1", PKEY = "tc-ltc-pending-v1",
     EKEY = "tc-ltc-events-v1", DEVKEY = "tc-ltc-device-v1", PLACEKEY = "tc-ltc-place-v1";
@@ -449,11 +464,12 @@ if(!dev || !dev.id){ dev = {id:newDevId(), name:""}; writeLS(DEVKEY, dev); }
 function saveDev(){ writeLS(DEVKEY, dev); }
 
 /* ---- 雲端設定 ---- */
-var cfg = {api:"", token:""};
+var cfg = {api:DEFAULT_API, token:""};
 (function(){
   var c = readLS(CFGKEY, null);
   if(c){
     if(c.api) cfg.api = c.api;
+    if(!c.api && DEFAULT_API) cfg.api = DEFAULT_API;
     if(c.token) cfg.token = c.token;
     if(c.user && !dev.name){ dev.name = c.user; saveDev(); }   // 舊版的名字搬到裝置上
   }
@@ -692,41 +708,52 @@ function renderBanner(){
 }
 
 /* ============ 進場設定 ============ */
+var gateAdv = false;
 function showGate(msg){
-  var invited = !!(cfg.api && cfg.token);
+  var needTok = !cfg.token;
+  var needApi = !cfg.api || gateAdv;
   $("#gateBox").innerHTML = ''
   + '<div class="eyebrow">台中長照接送速查</div>'
-  + '<h1>' + (invited ? "這台手機是誰的？" : "先連上家人共用的試算表") + '</h1>'
-  + '<p class="lead">' + (invited
-      ? "雲端設定已經幫你填好了。填個名字，之後每一筆紀錄都會標上是這台手機做的，家人就知道是誰打的電話、誰寫的筆記。"
-      : "這個系統的紀錄是全家共用的，必須連上試算表才能使用。設定值在邀請連結裡，或問開通的人。") + '</p>'
-  + (invited ? "" : ''
-    + '<div class="gfield"><div class="lbl">APPS SCRIPT 網址</div>'
-    + '<input class="gbig" id="gApi" value="' + esc(cfg.api) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false" inputmode="url"></div>'
-    + '<div class="gfield"><div class="lbl">通關碼</div>'
-    + '<input class="gbig" id="gToken" value="' + esc(cfg.token) + '" placeholder="家人共用的通關碼" autocomplete="off" spellcheck="false"></div>')
-  + '<div class="gfield"><div class="lbl">這台手機是誰的</div>'
-  + '<input class="gbig" id="gName" value="' + esc(dev.name) + '" placeholder="例如：阿美、大哥的手機" autocomplete="off"></div>'
-  + '<div class="gfield"><span class="devchip">裝置代碼 ' + dev.id + '</span></div>'
-  + '<button class="gbtn-main" id="gGo">連線並開始使用</button>'
+  + '<h1>' + (needTok ? "請輸入通關密語" : "你是誰？") + '</h1>'
+  + '<p class="lead">' + (needTok
+      ? "這是全家共用的長照接送名單。輸入家人給你的通關密語，再選一下你是誰，就可以開始用了。"
+      : "選一個稱呼就好。之後每一筆紀錄都會標上是誰做的，家人才知道電話是誰打的、筆記是誰寫的。") + '</p>'
+  + (needApi ? ''
+    + '<div class="gfield"><div class="lbl">雲端網址（進階）</div>'
+    + '<input class="gbig" id="gApi" value="' + esc(cfg.api) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false" inputmode="url"></div>' : "")
+  + (needTok ? ''
+    + '<div class="gfield"><div class="lbl">通關密語</div>'
+    + '<input class="gbig" id="gToken" value="" placeholder="家人給你的密語" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' : "")
+  + '<div class="gfield"><div class="lbl">你是誰</div>'
+  + '<div class="namechips">' + NAME_CHIPS.map(function(n){ return '<button type="button" data-nm="' + n + '">' + n + '</button>'; }).join("") + '</div>'
+  + '<input class="gbig" id="gName" value="' + esc(dev.name) + '" placeholder="點上面，或自己打名字" autocomplete="off"></div>'
+  + '<button class="gbtn-main" id="gGo">開始使用</button>'
   + '<div class="gmsg" id="gMsg">' + (msg || "") + '</div>'
-  + (invited ? '<div class="gmsg" style="margin-top:18px"><button id="gAdv" style="font-size:12.5px;color:var(--ink-3);text-decoration:underline">改雲端設定</button></div>' : "");
+  + '<div class="gmsg" style="margin-top:22px"><span class="devchip">這台裝置 ' + dev.id + '</span>'
+  + (needApi ? "" : ' <button id="gAdv" style="font-size:12px;color:var(--ink-3);text-decoration:underline;margin-left:8px">進階設定</button>') + '</div>';
   $("#gate").hidden = false;
   document.body.style.overflow = "hidden";
 }
 function hideGate(){ $("#gate").hidden = true; document.body.style.overflow = ""; }
 
 $("#gate").addEventListener("click", function(e){
-  if(e.target.closest("#gAdv")){
-    cfg.token = ""; saveCfg(); showGate("請重新填入雲端網址與通關碼。"); return;
+  var chip = e.target.closest("[data-nm]");
+  if(chip){
+    $("#gName").value = chip.getAttribute("data-nm");
+    Array.prototype.forEach.call($("#gate").querySelectorAll("[data-nm]"), function(b){
+      b.setAttribute("aria-pressed", String(b === chip));
+    });
+    return;
   }
+  if(e.target.closest("#gAdv")){ gateAdv = true; showGate("需要換試算表時才改這裡。"); return; }
   var go = e.target.closest("#gGo"); if(!go) return;
   var api = $("#gApi") ? $("#gApi").value.trim() : cfg.api;
   var tk  = $("#gToken") ? $("#gToken").value.trim() : cfg.token;
   var nm  = $("#gName").value.trim();
   var msg = $("#gMsg");
-  if(!api || !tk){ msg.className = "gmsg bad"; msg.textContent = "雲端網址和通關碼都要填。"; return; }
-  if(!nm){ msg.className = "gmsg bad"; msg.textContent = "請填一個名字，家人才分得出是誰。"; return; }
+  if(!api){ msg.className = "gmsg bad"; msg.textContent = "缺少雲端網址，請按下面的「進階設定」填入。"; return; }
+  if(!tk){ msg.className = "gmsg bad"; msg.textContent = "請輸入通關密語。"; return; }
+  if(!nm){ msg.className = "gmsg bad"; msg.textContent = "請選一個稱呼，家人才分得出是誰。"; return; }
   cfg.api = api; cfg.token = tk; saveCfg();
   dev.name = nm; saveDev();
   go.disabled = true; msg.className = "gmsg"; msg.textContent = "連線中…";
@@ -740,7 +767,9 @@ $("#gate").addEventListener("click", function(e){
     go.disabled = false;
     if(onApiError(err)) return;
     msg.className = "gmsg bad";
-    msg.textContent = "連不上：" + err.message + "（檢查網址結尾是不是 /exec、通關碼對不對、部署時「誰可以存取」有沒有選「所有人」）";
+    msg.textContent = /通關/.test(err.message)
+      ? "通關密語不對，請再問一次家人。"
+      : "連不上雲端：" + err.message;
   });
 });
 $("#upgate").addEventListener("click", function(e){
@@ -1077,7 +1106,10 @@ sheetInner.addEventListener("click", function(e){
   }
   if(t.closest("#copyInvite")){
     var base = location.origin + location.pathname;
-    return copyText(base + "?api=" + encodeURIComponent(cfg.api) + "&t=" + encodeURIComponent(cfg.token), "已複製邀請連結，貼給家人即可");
+    var link = (cfg.api === DEFAULT_API)
+      ? base + "?t=" + encodeURIComponent(cfg.token)
+      : base + "?api=" + encodeURIComponent(cfg.api) + "&t=" + encodeURIComponent(cfg.token);
+    return copyText(link, "已複製邀請連結，貼給家人即可");
   }
   if(t.closest("#reload")){ location.replace(location.pathname + "?v=" + Date.now()); return; }
 });
