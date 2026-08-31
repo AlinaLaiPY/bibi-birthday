@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="接送速查">
+<meta name="theme-color" content="#166F5F">
+<title>台中長照接送速查</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --ground:#EDF0EE; --surface:#FFFFFF; --surface-2:#F5F8F6; --raise:#FFFFFF;
+  --line:#D7E0DB; --line-soft:#E6ECE8;
+  --ink:#17262A; --ink-2:#4B6067; --ink-3:#7B8F8C;
+  --accent:#166F5F; --accent-ink:#0E4C41; --accent-soft:#DCEDE7;
+  --blue:#2A5B86; --blue-soft:#DEE9F3;
+  --amber:#8E5E0D; --amber-soft:#F6EAD3;
+  --red:#95362E; --red-soft:#F6E0DC;
+  --on-accent:#FFFFFF;
+  --shadow:0 1px 2px rgba(23,38,42,.06), 0 6px 18px rgba(23,38,42,.06);
+  --sheet-shadow:0 -8px 40px rgba(23,38,42,.22);
+  --serif:'Noto Serif TC','Songti TC',serif;
+  --sans:'Noto Sans TC','PingFang TC','Heiti TC',system-ui,sans-serif;
+  --mono:'IBM Plex Mono','SFMono-Regular',ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --raise:#222F30;
+    --line:#2C3B3C; --line-soft:#243132;
+    --ink:#E5EDEA; --ink-2:#A6B8B4; --ink-3:#7A8C89;
+    --accent:#5CCBB2; --accent-ink:#8BDDC8; --accent-soft:#153630;
+    --blue:#8FC1E6; --blue-soft:#182B39;
+    --amber:#E0AC62; --amber-soft:#332816;
+    --red:#E79084; --red-soft:#37211E;
+    --on-accent:#0F1617;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+    --sheet-shadow:0 -8px 40px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0F1617; --surface:#182223; --surface-2:#1E2A2B; --raise:#222F30;
+  --line:#2C3B3C; --line-soft:#243132;
+  --ink:#E5EDEA; --ink-2:#A6B8B4; --ink-3:#7A8C89;
+  --accent:#5CCBB2; --accent-ink:#8BDDC8; --accent-soft:#153630;
+  --blue:#8FC1E6; --blue-soft:#182B39;
+  --amber:#E0AC62; --amber-soft:#332816;
+  --red:#E79084; --red-soft:#37211E;
+  --on-accent:#0F1617;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+  --sheet-shadow:0 -8px 40px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.6;
+  -webkit-tap-highlight-color:transparent;
+}
+button,input,textarea,select{font:inherit; color:inherit;}
+button{background:none; border:0; cursor:pointer;}
+a{color:var(--accent-ink); text-decoration:none;}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px;}
+
+.wrap{max-width:560px; margin:0 auto; padding:0 14px calc(96px + env(safe-area-inset-bottom));}
+
+/* ---------- header ---------- */
+.top{
+  position:sticky; top:0; z-index:30;
+  background:var(--ground);
+  background:color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter:saturate(180%) blur(14px); -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line-soft);
+  padding-top:env(safe-area-inset-top);
+}
+.top-inner{max-width:560px; margin:0 auto; padding:10px 14px 8px;}
+.brandrow{display:flex; align-items:baseline; gap:8px; margin-bottom:8px;}
+.brand{font-family:var(--serif); font-weight:700; font-size:19px; letter-spacing:.02em;}
+.brand em{font-style:normal; color:var(--accent-ink);}
+.brandsub{font-size:11px; color:var(--ink-3); letter-spacing:.08em; margin-left:auto;}
+
+.search{position:relative; display:flex; align-items:center;}
+.search svg{position:absolute; left:12px; width:17px; height:17px; color:var(--ink-3); pointer-events:none;}
+.search input{
+  width:100%; padding:11px 40px 11px 36px; border-radius:12px;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  font-size:16px; /* 16px 避免 iOS 自動放大 */
+  box-shadow:var(--shadow);
+}
+.search input::placeholder{color:var(--ink-3);}
+.clearbtn{position:absolute; right:6px; width:30px; height:30px; border-radius:50%; color:var(--ink-3); font-size:16px; display:none; align-items:center; justify-content:center;}
+.clearbtn.on{display:flex;}
+
+/* chip rails */
+.rail{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:8px 14px 2px; margin:0 -14px;}
+.rail::-webkit-scrollbar{display:none;}
+.chip{
+  flex:0 0 auto; padding:5px 11px; border-radius:999px; font-size:13px; white-space:nowrap;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2);
+}
+.chip[aria-pressed="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:500;}
+
+/* ---------- stat strip ---------- */
+.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:12px 0 10px;}
+.stat{
+  border:1px solid var(--line); background:var(--surface); border-radius:10px;
+  padding:8px 6px; text-align:center; display:block;
+}
+.stat[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-soft);}
+.stat b{display:block; font-family:var(--mono); font-weight:600; font-size:17px; font-variant-numeric:tabular-nums; line-height:1.2;}
+.stat span{font-size:11px; color:var(--ink-2); letter-spacing:.02em;}
+.stat.s-called b{color:var(--blue);} .stat.s-yes b{color:var(--accent-ink);} .stat.s-hold b{color:var(--amber);}
+
+.resultline{display:flex; align-items:center; gap:8px; margin:2px 0 10px; font-size:12px; color:var(--ink-3);}
+.resultline .sortbtn{margin-left:auto; color:var(--accent-ink); font-size:12px; font-weight:500;}
+
+/* ---------- cards ---------- */
+.list{display:flex; flex-direction:column; gap:10px;}
+.card{
+  position:relative; background:var(--surface); border:1px solid var(--line);
+  border-radius:14px; box-shadow:var(--shadow); overflow:hidden;
+}
+.card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:transparent;}
+.card[data-st="called"]::before{background:var(--blue);}
+.card[data-st="yes"]::before{background:var(--accent);}
+.card[data-st="hold"]::before{background:var(--amber);}
+.card[data-st="no"]::before{background:var(--red);}
+.card-main{display:block; width:100%; text-align:left; padding:12px 13px 10px;}
+.hd{display:flex; align-items:flex-start; gap:8px;}
+.sn{
+  flex:0 0 auto; font-family:var(--mono); font-weight:600; font-size:11px; letter-spacing:.02em;
+  background:var(--surface-2); border:1px solid var(--line-soft); color:var(--ink-2);
+  padding:2px 6px; border-radius:6px; margin-top:3px;
+}
+.nm{font-family:var(--serif); font-weight:700; font-size:16px; line-height:1.45; letter-spacing:.01em; margin:0; text-wrap:balance;}
+.star{flex:0 0 auto; margin-left:auto; font-size:16px; color:var(--line); padding:0 2px;}
+.star.on{color:#E0A02A;}
+.addr{margin:6px 0 0; font-size:13px; color:var(--ink-2); line-height:1.55;}
+.tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; align-items:center;}
+.tag{font-size:11.5px; padding:2px 8px; border-radius:6px; background:var(--surface-2); color:var(--ink-2); border:1px solid var(--line-soft);}
+.tag.all{background:var(--accent-soft); color:var(--accent-ink); border-color:transparent; font-weight:500;}
+.tag.warn{background:var(--amber-soft); color:var(--amber); border-color:transparent;}
+.tag.st{font-weight:500; border-color:transparent;}
+.st-called{background:var(--blue-soft); color:var(--blue);}
+.st-yes{background:var(--accent-soft); color:var(--accent-ink);}
+.st-hold{background:var(--amber-soft); color:var(--amber);}
+.st-no{background:var(--red-soft); color:var(--red);}
+.notepv{
+  margin-top:8px; font-size:12.5px; color:var(--ink-2); background:var(--surface-2);
+  border-left:2px solid var(--line); padding:5px 8px; border-radius:0 6px 6px 0;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.acts{display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line-soft);}
+.acts > *{
+  padding:9px 4px; text-align:center; font-size:13px; font-weight:500; color:var(--accent-ink);
+  border-left:1px solid var(--line-soft);
+}
+.acts > *:first-child{border-left:0;}
+.acts .muted{color:var(--ink-3);}
+
+.empty{text-align:center; padding:48px 20px; color:var(--ink-3);}
+.empty b{display:block; font-family:var(--serif); font-size:16px; color:var(--ink-2); margin-bottom:6px;}
+
+/* ---------- bottom sheet ---------- */
+.scrim{position:fixed; inset:0; background:rgba(12,20,22,.45); opacity:0; pointer-events:none; transition:opacity .22s ease; z-index:40;}
+.scrim.on{opacity:1; pointer-events:auto;}
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:50;
+  background:var(--surface); border-radius:18px 18px 0 0; box-shadow:var(--sheet-shadow);
+  max-height:90dvh; display:flex; flex-direction:column;
+  transform:translateY(101%); transition:transform .28s cubic-bezier(.32,.72,0,1);
+}
+.sheet.on{transform:none;}
+.grip{width:38px; height:4px; border-radius:999px; background:var(--line); margin:8px auto 0; flex:0 0 auto;}
+.sheet-body{overflow-y:auto; -webkit-overflow-scrolling:touch; padding:10px 18px calc(20px + env(safe-area-inset-bottom));}
+.sheet-inner{max-width:560px; margin:0 auto;}
+.sh-sn{font-family:var(--mono); font-size:11px; color:var(--ink-3); letter-spacing:.06em;}
+.sh-nm{font-family:var(--serif); font-weight:700; font-size:19px; line-height:1.4; margin:4px 0 12px; text-wrap:balance;}
+.field{margin-bottom:14px;}
+.lbl{font-size:11px; letter-spacing:.14em; color:var(--ink-3); margin-bottom:5px;}
+.val{font-size:14px; line-height:1.7; color:var(--ink);}
+.arealist{display:flex; flex-wrap:wrap; gap:5px;}
+.telrow{display:flex; gap:8px; flex-wrap:wrap;}
+.telbtn{
+  display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:14px; font-weight:600;
+  background:var(--accent-soft); color:var(--accent-ink); padding:8px 12px; border-radius:10px;
+}
+.telbtn.dead{background:var(--amber-soft); color:var(--amber); font-family:var(--sans); font-weight:500;}
+.linkrow{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.gbtn{
+  border:1px solid var(--line); background:var(--surface-2); border-radius:10px;
+  padding:10px; text-align:center; font-size:13.5px; font-weight:500; color:var(--ink);
+}
+.segs{display:grid; grid-template-columns:repeat(5,1fr); gap:5px;}
+.seg{border:1px solid var(--line); background:var(--surface); border-radius:9px; padding:8px 2px; font-size:12px; text-align:center; color:var(--ink-2);}
+.seg[aria-pressed="true"]{font-weight:700; border-color:transparent;}
+.seg[data-v="none"][aria-pressed="true"]{background:var(--surface-2); color:var(--ink);}
+.seg[data-v="called"][aria-pressed="true"]{background:var(--blue-soft); color:var(--blue);}
+.seg[data-v="yes"][aria-pressed="true"]{background:var(--accent-soft); color:var(--accent-ink);}
+.seg[data-v="hold"][aria-pressed="true"]{background:var(--amber-soft); color:var(--amber);}
+.seg[data-v="no"][aria-pressed="true"]{background:var(--red-soft); color:var(--red);}
+textarea{
+  width:100%; min-height:110px; resize:vertical; padding:11px 12px; border-radius:12px;
+  border:1px solid var(--line); background:var(--surface-2); font-size:16px; line-height:1.65;
+}
+.saved{font-size:11.5px; color:var(--ink-3); margin-top:5px; min-height:16px;}
+.sheet-foot{display:flex; gap:8px; margin-top:4px;}
+.sheet-foot button{flex:1; padding:11px; border-radius:11px; font-size:14px; font-weight:500; border:1px solid var(--line);}
+.sheet-foot .danger{color:var(--red); border-color:transparent; background:var(--red-soft);}
+.sheet-foot .prim{background:var(--accent); color:var(--on-accent); border-color:transparent;}
+.starbig{font-size:20px; margin-left:auto; color:var(--line);}
+.starbig.on{color:#E0A02A;}
+.sh-hd{display:flex; align-items:flex-start; gap:10px;}
+
+/* tools */
+.tools textarea{min-height:150px; font-family:var(--mono); font-size:12.5px;}
+.tip{font-size:12.5px; color:var(--ink-2); line-height:1.7;}
+.tip b{color:var(--ink);}
+.iconbtn{
+  width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--surface);
+  display:inline-flex; align-items:center; justify-content:center; font-size:15px; color:var(--ink-2);
+}
+
+.toast{
+  position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom)); transform:translate(-50%,20px);
+  background:var(--ink); color:var(--ground); padding:9px 16px; border-radius:999px; font-size:13px;
+  opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:60; box-shadow:var(--shadow);
+}
+.toast.on{opacity:1; transform:translate(-50%,0);}
+
+.foot{margin-top:22px; padding-top:14px; border-top:1px solid var(--line-soft); font-size:11.5px; color:var(--ink-3); line-height:1.8;}
+
+
+/* ---------- 同步 / 雲端 ---------- */
+.syncpill{
+  margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+  border:1px solid var(--line); background:var(--surface); border-radius:999px;
+  padding:4px 11px 4px 9px; font-size:12px; color:var(--ink-2); box-shadow:var(--shadow);
+}
+.syncpill .dot{width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:0 0 auto;}
+.syncpill[data-s="ok"] .dot{background:var(--accent);}
+.syncpill[data-s="busy"] .dot{background:var(--amber); animation:pulse 1s ease-in-out infinite;}
+.syncpill[data-s="err"] .dot{background:var(--red);}
+@keyframes pulse{50%{opacity:.25;}}
+.banner{
+  display:flex; align-items:center; gap:10px; margin:12px 0 0;
+  background:var(--amber-soft); border-radius:12px; padding:10px 12px; font-size:12.5px; color:var(--amber);
+}
+.banner b{color:var(--amber);}
+.banner button{margin-left:auto; font-size:12.5px; font-weight:700; color:var(--amber); white-space:nowrap;}
+.by{font-size:11px; color:var(--ink-3); display:block; margin-top:3px;}
+
+.feed{list-style:none; margin:0; padding:0; display:flex; flex-direction:column;}
+.feed li{
+  display:grid; grid-template-columns:auto 1fr auto; gap:4px 8px; align-items:baseline;
+  padding:9px 0; border-top:1px solid var(--line-soft);
+}
+.feed li:first-child{border-top:0;}
+.feed .fu{font-weight:700; font-size:13px;}
+.feed .fa{
+  grid-column:1; grid-row:2; font-size:11px; padding:1px 7px; border-radius:5px;
+  background:var(--surface-2); color:var(--ink-2); justify-self:start;
+}
+.feed .fa-call{background:var(--blue-soft); color:var(--blue);}
+.feed .fa-note{background:var(--accent-soft); color:var(--accent-ink);}
+.feed .fa-search{background:var(--amber-soft); color:var(--amber);}
+.feed .ft{grid-column:2; grid-row:2; font-size:13px; color:var(--ink-2); line-height:1.5;}
+.feed time{grid-column:3; grid-row:1; font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums;}
+.feed .fnm{grid-column:2; grid-row:1; font-size:12.5px; color:var(--ink-3);}
+
+.inp{
+  width:100%; padding:10px 12px; border-radius:11px; border:1px solid var(--line);
+  background:var(--surface-2); font-size:16px; color:var(--ink);
+}
+.hint{font-size:11.5px; color:var(--ink-3); margin-top:5px; line-height:1.6; word-break:break-all;}
+.sec{border-top:1px solid var(--line-soft); margin-top:18px; padding-top:16px;}
+.sec:first-of-type{border-top:0; margin-top:0; padding-top:0;}
+.sectitle{font-family:var(--serif); font-weight:700; font-size:15px; margin:0 0 10px;}
+.state{display:flex; align-items:center; gap:8px; font-size:13.5px; margin-bottom:10px;}
+.state .syncpill{margin-left:0; padding:6px 13px 6px 11px; font-size:13px;}
+
+@media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important;}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brandrow">
+      <div class="brand">台中<em>長照接送</em>速查</div>
+      <button class="syncpill" id="syncBtn" data-s="local"><span class="dot"></span><span id="syncTxt">本機模式</span></button>
+    </div>
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" inputmode="search" placeholder="搜尋單位、地區、地址、電話、筆記" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="clearbtn" id="clear" aria-label="清除搜尋">✕</button>
+    </div>
+    <div class="rail" id="rail" role="group" aria-label="服務區域篩選"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner"></div>
+  <div class="stats" id="stats"></div>
+  <div class="resultline">
+    <span id="count"></span>
+    <button class="sortbtn" id="sort">排序：序號</button>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="foot">
+    資料來源：114–116年長期照顧服務特約單位一覽表（臺中市全市）· 交通接送服務及社區式服務交通接送 DA01／BD03。<br>
+    <span id="footmode"></span><br>
+    <button id="tools" class="sortbtn" style="margin:8px 0 0; padding:0;">設定・家人動態・備份</button>
+  </div>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="單位明細">
+  <div class="grip"></div>
+  <div class="sheet-body"><div class="sheet-inner" id="sheetInner"></div></div>
+</section>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 資料（依四張表格轉錄） ============ */
+var ALL = "全區";
+var DATA = [
+ {id:30, nm:"社團法人台灣寶生社會服務協進會", ar:["烏日","大肚","沙鹿","龍井","梧棲","清水","東區","北區","北屯","西屯","南屯"], ad:"臺中市烏日區仁德里信義街381巷27弄10號", tel:[{n:"04-2337-0238"}]},
+ {id:100, nm:"財團法人臺中市私立童庭社會福利慈善事業基金會", ar:(["大里","霧峰","烏日","豐原","潭子","大雅","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"]), ad:"臺中市烏日區九德里長春街373巷52號", tel:[{n:"04-2336-0996"}]},
+ {id:124, nm:"社團法人臺中市綠生活創意行動協會", ar:ALL, ad:"臺中市東區三賢街154號3樓", tel:[{n:"04-3509-0688"}]},
+ {id:154, nm:"社團法人元澤協會", ar:ALL, ad:"臺中市北屯區松竹北路110號3樓", tel:[{n:"04-2242-0833"}]},
+ {id:184, nm:"大慶居家護理所", ar:["大里","霧峰","烏日","豐原","潭子","大雅","神岡","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市大里區國光里7鄰六桂路146號1樓", tel:[{n:"04-2265-7959", l:"居家護理指導與諮詢 CD02"},{n:"04-2273-", l:"交通接送 DA01/BD03", cut:true}], flag:"電話在原表被裁切，撥打前請再確認"},
+ {id:210, nm:"社團法人臺中市秀老郎公益服務協會", ar:["大里","烏日","潭子","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市東區十甲里自由路4段314號3樓", tel:[{n:"04-2226-3456"}]},
+ {id:218, nm:"社團法人臺中市好伴照顧協會", ar:["大里","烏日","潭子","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市大肚區大肚里紙廠路53號", tel:[{n:"0905-981-732"}]},
+ {id:230, nm:"淨新診所", ar:["豐原","潭子","大雅","神岡","中區","東區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市潭子區中山路二段391巷5號1樓、4樓、5樓", tel:[{n:"04-2533-5235"}]},
+ {id:271, nm:"台灣家安社區關懷服務協會", ar:["豐原","后里","石岡","東勢","和平","新社","潭子","大雅","神岡","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市潭子區福貴路689號", tel:[{n:"04-2536-0918"}]},
+ {id:275, nm:"臺中市私立金陵綜合長照機構", ar:ALL, ad:"臺中市北區立人里001鄰陝西路108號5樓之1", tel:[{n:"04-2293-2000"}]},
+ {id:311, nm:"臺中市私立欣德老人長期照顧中心（養護型）", ar:["潭子","中區","東區","西區","北區","北屯","西屯","南屯"], ad:"臺中市北屯區平德里青島路三段13號", tel:[{n:"04-2231-6611"}]},
+ {id:343, nm:"勢能投資有限公司私立大里社區長照機構", ar:ALL, ad:"臺中市大里區新里里18鄰新興路101號3樓", tel:[{n:"04-2406-7060"}]},
+ {id:356, nm:"社團法人台灣基督教好牧人全人關顧協會", ar:["大里","霧峰","烏日","豐原","潭子","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市大里區西榮里022鄰中興路二段323號4樓", tel:[{n:"04-2485-0890"}]},
+ {id:384, nm:"臺中市私立健民老人長期照顧中心（養護型）", ar:ALL, ad:"臺中市霧峰區萬豐里17鄰中正路129號", tel:[{n:"04-2332-8287"}]},
+ {id:386, nm:"翔新診所", ar:["大里","霧峰","烏日","豐原","潭子","大雅","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市東區東英里十甲東路768號1樓、768-1號1樓、768-2號1樓、768-3號1樓及東英十七街167-2號1樓", tel:[{n:"04-3509-0907"}]},
+ {id:489, nm:"社團法人馨如社會服務協會", ar:ALL, ad:"臺中市大里區仁化里025鄰仁堤路60號1樓", tel:[{n:"04-2483-4033"}]},
+ {id:517, nm:"社團法人臺灣長德社區關懷協會", ar:["大里","霧峰","潭子","大雅","沙鹿","龍井","梧棲","清水","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市太平區樹德路159之1號", tel:[{n:"04-2395-0719"}]},
+ {id:532, nm:"臺中市私立永和老人養護中心", ar:["中區","東區","南區","西區","北區","北屯","西屯","南屯"], ad:"臺中市西屯路一段250巷1號", tel:[{n:"04-2203-0609"}]},
+ {id:538, nm:"本堂澄清醫院附設護理之家", ar:ALL, ad:"臺中市霧峰區中正路720巷5號", tel:[{n:"04-2339-3563"}]},
+ {id:547, nm:"松德租賃有限公司", ar:["大里","霧峰","烏日","大雅","大肚","沙鹿","龍井","梧棲","清水","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市大里區仁德里文化街165號", tel:[{n:"04-2395-0256"}]},
+ {id:582, nm:"合順租賃股份有限公司", ar:["烏日","大肚","沙鹿","龍井","梧棲","中區","東區","南區","西區","北區","北屯","西屯","南屯"], ad:"臺中市烏日區烏日里民族街8號1樓", tel:[{n:"04-2462-1311"}]},
+ {id:587, nm:"樂格適小客車租賃有限公司", ar:ALL, ad:"臺中市西屯區臺灣大道三段285號26樓之5", tel:[{n:"0975-221-117"}]},
+ {id:588, nm:"柄杉有限公司附設私立築夢苑社區長照機構", ar:ALL, ad:"臺中市大甲區武曲里09鄰大安港路438號1樓", tel:[{n:"04-2680-4786"}]},
+ {id:597, nm:"財團法人台灣省私立毓得社會福利基金會", ar:["大里","霧峰","烏日","豐原","潭子","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市東區東門里六順路7號", tel:[{n:"04-2280-3998"},{n:"04-2280-9535"}]},
+ {id:601, nm:"財團法人全成社會福利基金會附設臺中市私立春社社區式服務類長期照顧服務機構", ar:["烏日","大肚","沙鹿","龍井","梧棲","中區","南區","西區","北區","北屯","西屯","南屯"], ad:"臺中市南屯區春社里006鄰忠勇路23-12號2樓", tel:[{n:"04-2389-0781"}]},
+ {id:611, nm:"社團法人長圓福利服務教育協會", ar:ALL, ad:"臺中市西屯區何安里臺灣大道2段910號8樓之3", tel:[{n:"04-3609-7228"}]},
+ {id:614, nm:"臺中市私立愛健康綜合長照機構", ar:ALL, ad:"臺中市西屯區何南里大墩20街99號2樓", tel:[{n:"04-2310-0818"}]},
+ {id:631, nm:"允川租賃有限公司", ar:ALL, ad:"臺中市東區東門里東福路102號8樓", tel:[{n:"04-2281-0201"}]},
+ {id:667, nm:"生連股份有限公司", ar:["大里","霧峰","烏日","豐原","潭子","大雅","神岡","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","中區","東區"], ad:"臺中市東區公園東路130號2樓之1（A15）", tel:[{n:"04-2227-0067"}], flag:"服務區域在原表被裁切，可能還有其他行政區"},
+ {id:668, nm:"有成健康顧問有限公司附設臺中市私立佳佳綜合長照機構", ar:ALL, ad:"臺中市后里區義德里016鄰甲后路一段363號5樓", tel:[{n:"04-2558-0021"}]},
+ {id:669, nm:"頡耳鼻喉科診所", ar:["大里","霧峰","烏日","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市大里區金城里塗城路532號1樓", tel:[{n:"04-2496-8070"}]},
+ {id:672, nm:"立林長青事業有限公司", ar:ALL, ad:"臺中市北屯區松竹里11鄰松竹路三段119號1樓", tel:[{n:"04-2241-5589"}]},
+ {id:676, nm:"臺中市久齡長照關懷協會", ar:["大里","霧峰","烏日","大肚","沙鹿","龍井","梧棲","清水","大甲","中區","東區","南區","西區","北區","北屯","西屯","南屯"], ad:"臺中市西區民龍里民權路380號", tel:[{n:"0908-922-198"}]},
+ {id:688, nm:"社團法人臺中市大恆樂齡協會", ar:["烏日","后里","石岡","東勢","和平","龍井","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市南屯區惠中里大光街133號", tel:[{n:"04-2380-2117"}]},
+ {id:706, nm:"社團法人台灣長期照護推廣協會", ar:ALL, ad:"臺中市東區東南里精武路63號1樓", tel:[{n:"0973-305-719"}]},
+ {id:731, nm:"臺中市私立健豐社區長照機構", ar:ALL, ad:"臺中市后里區墩東里16鄰福德路161巷13號1樓", tel:[{n:"04-2559-0002"}]},
+ {id:738, nm:"博佑診所", ar:["大里","霧峰","烏日","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市大里區金城里塗城路546號1樓", tel:[{n:"04-2496-7090"}]},
+ {id:834, nm:"社團法人台灣福樂慈善關懷協會", ar:["大里","霧峰","烏日","豐原","后里","石岡","東勢","新社","潭子","大雅","神岡","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安","中區","東區","南區","西區","北區","北屯","西屯","南屯","太平"], ad:"臺中市南屯區文心路一段186號16樓之8", tel:[{n:"04-2471-8698"}]},
+ {id:838, nm:"臺中市祥和公益服務協會", ar:ALL, ad:"臺中市南屯區樹義里15鄰大慶街一段233-6號1樓", tel:[{n:"0976-263-299"}]}
+];
+
+var DISTRICTS = ["中區","東區","南區","西區","北區","北屯","西屯","南屯","太平","大里","霧峰","烏日","豐原","后里","石岡","東勢","和平","新社","潭子","大雅","神岡","大肚","沙鹿","龍井","梧棲","清水","大甲","外埔","大安"];
+var STATUS = [
+  {v:"none", t:"未聯絡"},
+  {v:"called", t:"已聯絡"},
+  {v:"yes", t:"可接送"},
+  {v:"hold", t:"待確認"},
+  {v:"no", t:"不接"}
+];
+var ST_MAP = {}; STATUS.forEach(function(s){ST_MAP[s.v]=s.t;});
+
+/* ============ 設定（雲端） ============ */
+var CFGKEY = "tc-ltc-cfg-v1", KEY = "tc-ltc-transport-v1", PKEY = "tc-ltc-pending-v1", EKEY = "tc-ltc-events-v1";
+var cfg = {api:"", token:"", user:""};
+function readLS(k, d){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function writeLS(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+(function(){
+  var c = readLS(CFGKEY, null);
+  if(c){ for(var k in c) if(c.hasOwnProperty(k)) cfg[k] = c[k]; }
+  var qs = {}, s = location.search.replace(/^\?/, "");
+  s.split("&").forEach(function(kv){ if(!kv) return; var i = kv.indexOf("="); if(i<0) return;
+    qs[decodeURIComponent(kv.slice(0,i))] = decodeURIComponent(kv.slice(i+1).replace(/\+/g," ")); });
+  var ch = false;
+  if(qs.api){ cfg.api = qs.api; ch = true; }
+  if(qs.t){ cfg.token = qs.t; ch = true; }
+  if(qs.u && !cfg.user){ cfg.user = qs.u; ch = true; }
+  if(ch){ writeLS(CFGKEY, cfg); if(history.replaceState) history.replaceState(null, "", location.pathname + location.hash); }
+})();
+function saveCfg(){ writeLS(CFGKEY, cfg); }
+
+/* ============ 紀錄儲存 ============ */
+var rec = readLS(KEY, {}) || {};
+var pending = readLS(PKEY, {}) || {};
+var events = readLS(EKEY, []) || [];
+function save(){ if(!writeLS(KEY, rec)) toast("這台裝置無法儲存（可能是無痕模式）"); }
+function savePending(){ writeLS(PKEY, pending); }
+function saveEvents(){ writeLS(EKEY, events.slice(-200)); }
+function r(id){ return rec[id] || (rec[id] = {st:"none", star:0, note:"", ts:0, by:""}); }
+function has(id){ var x = rec[id]; return !!(x && (x.st && x.st !== "none" || x.star || (x.note||"").trim())); }
+function byId(id){ for(var i=0;i<DATA.length;i++) if(DATA[i].id === +id) return DATA[i]; return null; }
+function touch(id){ var x = r(id); x.ts = Date.now(); x.by = cfg.user || ""; x.upd = fmtTime(x.ts); save(); pending[id] = 1; savePending(); flush(); }
+
+function fmtTime(ts){
+  if(!ts) return "";
+  var d = new Date(ts);
+  return d.getFullYear()+"/"+(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+}
+function relTime(ts){
+  if(!ts) return "";
+  var s = Math.floor((Date.now() - ts)/1000);
+  if(s < 60) return "剛剛";
+  if(s < 3600) return Math.floor(s/60) + " 分鐘前";
+  if(s < 86400) return Math.floor(s/3600) + " 小時前";
+  if(s < 604800) return Math.floor(s/86400) + " 天前";
+  return fmtTime(ts).slice(5);
+}
+
+/* ============ 雲端連線（JSONP，免 CORS 設定） ============ */
+var sync = {state:"local", last:0, log:[], busy:false, err:""};
+var jn = 0;
+function jsonp(params){
+  return new Promise(function(res, rej){
+    if(!cfg.api){ rej(new Error("尚未設定雲端網址")); return; }
+    var cb = "__ltc" + (++jn) + "_" + Date.now();
+    var sc = document.createElement("script");
+    var to = setTimeout(function(){ done(); rej(new Error("連線逾時，請檢查網路")); }, 20000);
+    function done(){ clearTimeout(to); try{ delete window[cb]; }catch(e){ window[cb] = undefined; } if(sc.parentNode) sc.parentNode.removeChild(sc); }
+    window[cb] = function(d){ done(); if(d && d.ok === false) rej(new Error(d.error || "雲端回報錯誤")); else res(d); };
+    sc.onerror = function(){ done(); rej(new Error("連不上雲端，請確認網址與部署權限")); };
+    var q = [];
+    for(var k in params) if(params.hasOwnProperty(k)) q.push(encodeURIComponent(k) + "=" + encodeURIComponent(params[k]));
+    q.push("t=" + encodeURIComponent(cfg.token));
+    q.push("callback=" + cb);
+    sc.src = cfg.api + (cfg.api.indexOf("?") < 0 ? "?" : "&") + q.join("&");
+    document.head.appendChild(sc);
+  });
+}
+
+function setSync(st, err){
+  sync.state = st; sync.err = err || "";
+  var pill = $("#syncBtn"), txt = $("#syncTxt");
+  pill.setAttribute("data-s", st);
+  txt.textContent = st === "ok" ? (sync.last ? "已同步 " + relTime(sync.last) : "已同步")
+    : st === "busy" ? "同步中…"
+    : st === "err" ? "連線失敗"
+    : "本機模式";
+  var fm = $("#footmode");
+  if(fm) fm.textContent = cfg.api
+    ? "紀錄同步到家人共用的 Google 試算表" + (cfg.user ? "，目前身分：" + cfg.user : "（尚未填名字）") + "。"
+    : "紀錄只存在這支手機，尚未連上雲端。";
+  renderBanner();
+}
+function renderBanner(){
+  var b = $("#banner"); if(!b) return;
+  if(!cfg.api){
+    b.innerHTML = '<div class="banner"><span><b>還沒連上雲端</b>　紀錄只存在這支手機，家人看不到。</span><button data-panel="1">去設定</button></div>';
+  } else if(!cfg.user){
+    b.innerHTML = '<div class="banner"><span><b>還沒填名字</b>　家人動態會看不出是誰做的。</span><button data-panel="1">填名字</button></div>';
+  } else if(sync.state === "err"){
+    b.innerHTML = '<div class="banner"><span><b>同步失敗</b>　' + esc(sync.err) + '</span><button data-panel="1">檢查</button></div>';
+  } else b.innerHTML = "";
+}
+
+function fromServer(x){
+  return {st:x.st || "none", star:x.star ? 1 : 0, note:x.note || "", by:x.by || "", ts:x.ts || 0, upd:fmtTime(x.ts)};
+}
+
+function pull(){
+  if(!cfg.api) return Promise.resolve();
+  setSync("busy");
+  return jsonp({op:"pull", n:60}).then(function(d){
+    var seen = {};
+    (d.records || []).forEach(function(x){
+      seen[x.id] = 1;
+      var l = rec[x.id];
+      if(!l){ if(x.st !== "none" || x.star || x.note) rec[x.id] = fromServer(x); }
+      else if((x.ts||0) > (l.ts||0)) rec[x.id] = fromServer(x);
+      else if((l.ts||0) > (x.ts||0)) pending[x.id] = 1;
+    });
+    Object.keys(rec).forEach(function(id){ if(!seen[id] && has(id)) pending[id] = 1; });
+    sync.log = d.log || []; sync.last = Date.now();
+    save(); savePending(); setSync("ok"); render();
+    return flush();
+  }).catch(function(e){ setSync("err", e.message); });
+}
+
+function pushOne(id){
+  var d = byId(id), x = rec[id] || {st:"none", star:0, note:"", ts:Date.now()};
+  return jsonp({op:"save", id:id, nm:d ? d.nm : "", st:x.st || "none", star:x.star ? 1 : 0,
+                note:x.note || "", user:cfg.user || "", ts:x.ts || Date.now()})
+    .then(function(res){
+      if(res && res.stale && res.record){ rec[id] = fromServer(res.record); save(); render(); }
+      delete pending[id]; savePending();
+    });
+}
+
+function flushEvents(){
+  if(!cfg.api || !events.length) return Promise.resolve();
+  var batch = events.slice(0, 15).map(function(e){
+    return {at:e.at, user:e.user || cfg.user || "", act:e.act, txt:e.txt, id:e.id, nm:e.nm};
+  });
+  var body = JSON.stringify(batch);
+  while(body.length > 5000 && batch.length > 1){ batch = batch.slice(0, Math.ceil(batch.length/2)); body = JSON.stringify(batch); }
+  return jsonp({op:"log", user:cfg.user || "", d:body}).then(function(){
+    events = events.slice(batch.length); saveEvents();
+    if(events.length) return flushEvents();
+  });
+}
+
+function flush(){
+  if(!cfg.api || sync.busy) return Promise.resolve();
+  var ids = Object.keys(pending);
+  if(!ids.length && !events.length) return Promise.resolve();
+  sync.busy = true; setSync("busy");
+  var chain = Promise.resolve();
+  ids.forEach(function(id){ chain = chain.then(function(){ return pushOne(id); }); });
+  return chain.then(flushEvents).then(function(){
+    sync.busy = false; sync.last = Date.now(); setSync("ok");
+  }).catch(function(e){
+    sync.busy = false; setSync("err", e.message);
+  });
+}
+
+/* ---- 使用紀錄 ---- */
+function logEvent(act, txt, d){
+  if(!cfg.api) return;
+  events.push({at:Date.now(), user:cfg.user || "", act:act, txt:txt || "", id:d ? d.id : "", nm:d ? d.nm : ""});
+  saveEvents();
+  clearTimeout(logEvent._t);
+  logEvent._t = setTimeout(flush, 2500);
+}
+var lastQ = "";
+function logSearch(q){
+  clearTimeout(logSearch._t);
+  logSearch._t = setTimeout(function(){
+    if(q.length < 2 || q === lastQ) return;
+    lastQ = q; logEvent("搜尋", q);
+  }, 2200);
+}
+
+/* ============ 狀態 ============ */
+var state = {q:"", dist:"", filter:"", sort:"id"};
+var $ = function(s){ return document.querySelector(s); };
+var listEl = $("#list"), railEl = $("#rail"), statsEl = $("#stats"), countEl = $("#count");
+
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function areaText(d){ return d.ar === ALL ? "全區" : d.ar.join("、"); }
+function telDigits(n){ return n.replace(/[^0-9]/g, ""); }
+
+function match(d){
+  if(state.dist && d.ar !== ALL && d.ar.indexOf(state.dist) < 0) return false;
+  var f = state.filter, x = rec[d.id];
+  if(f === "star" && !(x && x.star)) return false;
+  if(f === "note" && !(x && (x.note||"").trim())) return false;
+  if(f === "called" && !(x && (x.st === "called" || x.st === "yes"))) return false;
+  if(f === "yes" && !(x && x.st === "yes")) return false;
+  if(f === "hold" && !(x && x.st === "hold")) return false;
+  if(state.q){
+    var hay = d.id + " " + d.nm + " " + areaText(d) + " " + d.ad + " " + d.tel.map(function(t){ return t.n; }).join(" ") + " " + ((x && x.note) || "");
+    if(hay.toLowerCase().indexOf(state.q.toLowerCase()) < 0) return false;
+  }
+  return true;
+}
+
+function render(){
+  var rows = DATA.filter(match);
+  if(state.sort === "name") rows.sort(function(a,b){ return a.nm.localeCompare(b.nm, "zh-Hant"); });
+  else if(state.sort === "area") rows.sort(function(a,b){ var an = a.ar===ALL?99:a.ar.length, bn = b.ar===ALL?99:b.ar.length; return bn-an || a.id-b.id; });
+  else rows.sort(function(a,b){ return a.id-b.id; });
+
+  countEl.textContent = "共 " + rows.length + " 家" + (state.dist ? "・" + state.dist : "") + (state.q ? "・符合「" + state.q + "」" : "");
+  listEl.innerHTML = rows.length
+    ? rows.map(card).join("")
+    : '<div class="empty"><b>沒有符合的單位</b>換個關鍵字，或清掉上面的區域／狀態篩選。</div>';
+  renderStats();
+}
+
+function card(d){
+  var x = rec[d.id] || {}, st = x.st || "none";
+  var areaTag = d.ar === ALL
+    ? '<span class="tag all">全區服務</span>'
+    : '<span class="tag">' + d.ar.length + ' 個行政區</span><span class="tag">' + esc(d.ar.slice(0,4).join("、")) + (d.ar.length>4?"…":"") + '</span>';
+  var stTag = st !== "none" ? '<span class="tag st st-'+st+'">' + ST_MAP[st] + '</span>' : "";
+  var flag = d.flag ? '<span class="tag warn">⚠ 需確認</span>' : "";
+  var note = (x.note||"").trim()
+    ? '<div class="notepv">' + esc(x.note.trim()) + (x.by ? '<span class="by">— ' + esc(x.by) + '　' + relTime(x.ts) + '</span>' : "") + '</div>'
+    : (x.by && st !== "none" ? '<div class="notepv"><span class="by">' + esc(x.by) + ' 標為「' + ST_MAP[st] + '」　' + relTime(x.ts) + '</span></div>' : "");
+  var t0 = d.tel[0];
+  var callBtn = (t0 && !t0.cut)
+    ? '<a href="tel:' + telDigits(t0.n) + '" data-act="call" data-id="' + d.id + '">撥打電話</a>'
+    : '<span class="muted">電話待確認</span>';
+  return ''
+  + '<article class="card" data-st="' + st + '">'
+  +   '<button class="card-main" data-open="' + d.id + '">'
+  +     '<div class="hd"><span class="sn">' + d.id + '</span><h3 class="nm">' + esc(d.nm) + '</h3>'
+  +       '<span class="star' + (x.star?" on":"") + '">' + (x.star?"★":"☆") + '</span></div>'
+  +     '<p class="addr">' + esc(d.ad) + '</p>'
+  +     '<div class="tags">' + areaTag + stTag + flag + '</div>'
+  +     note
+  +   '</button>'
+  +   '<div class="acts">'
+  +     callBtn
+  +     '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.ad) + '" target="_blank" rel="noopener" data-act="map" data-id="' + d.id + '">開地圖</a>'
+  +     '<button data-open="' + d.id + '">寫紀錄</button>'
+  +   '</div>'
+  + '</article>';
+}
+
+function renderStats(){
+  var n = {called:0, yes:0, hold:0};
+  DATA.forEach(function(d){
+    var x = rec[d.id]; if(!x) return;
+    if(x.st === "called" || x.st === "yes") n.called++;
+    if(x.st === "yes") n.yes++;
+    if(x.st === "hold") n.hold++;
+  });
+  var cells = [
+    {k:"", b:DATA.length, s:"全部單位", c:""},
+    {k:"called", b:n.called, s:"已聯絡", c:"s-called"},
+    {k:"yes", b:n.yes, s:"可接送", c:"s-yes"},
+    {k:"hold", b:n.hold, s:"待確認", c:"s-hold"}
+  ];
+  statsEl.innerHTML = cells.map(function(c){
+    return '<button class="stat ' + c.c + '" data-f="' + c.k + '" aria-pressed="' + (state.filter===c.k) + '"><b>' + c.b + '</b><span>' + c.s + '</span></button>';
+  }).join("");
+}
+
+function renderRail(){
+  var chips = ['<button class="chip" data-d="" aria-pressed="' + (state.dist==="") + '">全部區域</button>'];
+  DISTRICTS.forEach(function(dd){
+    chips.push('<button class="chip" data-d="' + dd + '" aria-pressed="' + (state.dist===dd) + '">' + dd + '</button>');
+  });
+  chips.push('<button class="chip" data-f2="star" aria-pressed="' + (state.filter==="star") + '">★ 已標記</button>');
+  chips.push('<button class="chip" data-f2="note" aria-pressed="' + (state.filter==="note") + '">有筆記</button>');
+  railEl.innerHTML = chips.join("");
+}
+
+/* ============ 明細面板 ============ */
+var sheet = $("#sheet"), scrim = $("#scrim"), sheetInner = $("#sheetInner"), openId = null, saveTimer = null;
+
+function showSheet(){ scrim.classList.add("on"); sheet.classList.add("on"); document.body.style.overflow = "hidden"; }
+function closeSheet(){
+  scrim.classList.remove("on"); sheet.classList.remove("on");
+  document.body.style.overflow = ""; openId = null; render();
+}
+
+function openSheetFor(id){
+  var d = byId(id); if(!d) return;
+  openId = id; var x = r(id);
+  logEvent("開啟", "", d);
+  var areas = d.ar === ALL ? '<span class="tag all">全區服務</span>'
+    : d.ar.map(function(a){ return '<span class="tag">' + a + '</span>'; }).join("");
+  var tels = d.tel.map(function(t){
+    var lb = t.l ? '<span style="font-size:11px;color:var(--ink-3);display:block;margin-bottom:3px">' + esc(t.l) + '</span>' : "";
+    return '<div>' + lb + (t.cut
+      ? '<span class="telbtn dead">' + esc(t.n) + '（號碼不完整）</span>'
+      : '<a class="telbtn" href="tel:' + telDigits(t.n) + '" data-act="call" data-id="' + d.id + '">' + esc(t.n) + '</a>') + '</div>';
+  }).join("");
+  sheetInner.innerHTML = ''
+  + '<div class="sh-hd"><div><div class="sh-sn">序號 ' + d.id + '</div><h2 class="sh-nm">' + esc(d.nm) + '</h2></div>'
+  +   '<button class="starbig' + (x.star?" on":"") + '" id="starBig" aria-label="標記">' + (x.star?"★":"☆") + '</button></div>'
+  + (d.flag ? '<div class="field"><span class="tag warn">⚠ ' + esc(d.flag) + '</span></div>' : "")
+  + '<div class="field"><div class="lbl">服務項目</div><div class="val">交通接送服務及社區式服務交通接送（DA01 及 BD03）</div></div>'
+  + '<div class="field"><div class="lbl">聯絡電話</div><div class="telrow">' + tels + '</div></div>'
+  + '<div class="field"><div class="lbl">地址</div><div class="val">' + esc(d.ad) + '</div>'
+  +   '<div class="linkrow" style="margin-top:8px">'
+  +     '<a class="gbtn" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(d.ad) + '" target="_blank" rel="noopener" data-act="map" data-id="' + d.id + '">在地圖開啟</a>'
+  +     '<button class="gbtn" id="copyAd">複製地址</button>'
+  +   '</div></div>'
+  + '<div class="field"><div class="lbl">服務區域' + (d.ar===ALL?"":"（" + d.ar.length + "）") + '</div><div class="arealist">' + areas + '</div></div>'
+  + '<div class="field"><div class="lbl">聯絡狀態</div><div class="segs" id="segs">'
+  +   STATUS.map(function(s){ return '<button class="seg" data-v="' + s.v + '" aria-pressed="' + ((x.st||"none")===s.v) + '">' + s.t + '</button>'; }).join("")
+  + '</div></div>'
+  + '<div class="field"><div class="lbl">家人共用的紀錄</div>'
+  +   '<textarea id="note" placeholder="例：8/31 早上打過，可排週二、四上午，需三天前預約，來回 240 元。承辦：陳小姐">' + esc(x.note||"") + '</textarea>'
+  +   '<div class="saved" id="saved">' + (x.ts ? (x.by ? x.by + " · " : "") + "更新於 " + fmtTime(x.ts) : "") + '</div></div>'
+  + '<div class="sheet-foot">'
+  +   '<button class="danger" id="clearRec">清除這家的紀錄</button>'
+  +   '<button class="prim" id="closeSheet">完成</button>'
+  + '</div>';
+  showSheet();
+}
+
+/* ============ 設定・家人動態・備份 ============ */
+function actClass(a){ return a === "撥打" ? "call" : a === "搜尋" ? "search" : (a === "筆記" || a === "狀態") ? "note" : ""; }
+function feedHtml(){
+  if(!cfg.api) return '<div class="tip">連上雲端後，這裡會顯示家人最近搜尋了什麼、打給哪一家。</div>';
+  if(!sync.log.length) return '<div class="tip">目前還沒有紀錄。家人開始使用後就會出現在這裡。</div>';
+  return '<ul class="feed">' + sync.log.slice(0, 40).map(function(e){
+    return '<li><span class="fu">' + esc(e.user || "（未署名）") + '</span>'
+      + '<span class="fnm">' + esc(e.nm || "") + '</span>'
+      + '<time>' + relTime(e.at) + '</time>'
+      + '<span class="fa fa-' + actClass(e.act) + '">' + esc(e.act) + '</span>'
+      + '<span class="ft">' + esc(e.txt || "") + '</span></li>';
+  }).join("") + '</ul>';
+}
+
+function openPanel(){
+  openId = null;
+  var stateTxt = !cfg.api ? "本機模式（尚未連上雲端）"
+    : sync.state === "ok" ? "已連線・上次同步 " + relTime(sync.last)
+    : sync.state === "busy" ? "同步中…"
+    : sync.state === "err" ? "連線失敗：" + sync.err : "尚未同步";
+  var waiting = Object.keys(pending).length + events.length;
+  sheetInner.innerHTML = ''
+  + '<div class="sh-sn">設定</div><h2 class="sh-nm">同步與家人動態</h2>'
+  + '<div class="sec">'
+  +   '<div class="state"><span class="syncpill" data-s="' + (cfg.api ? sync.state : "local") + '"><span class="dot"></span>' + esc(stateTxt) + '</span></div>'
+  +   (waiting ? '<div class="hint">還有 ' + waiting + ' 筆變更等著上傳（有網路時會自動送出）。</div>' : "")
+  +   '<div class="linkrow" style="margin-top:10px"><button class="gbtn" id="syncNow">立即同步</button>'
+  +   '<button class="gbtn" id="testApi">測試連線</button></div>'
+  + '</div>'
+  + '<div class="sec"><h3 class="sectitle">我是誰</h3>'
+  +   '<input class="inp" id="cfgUser" value="' + esc(cfg.user) + '" placeholder="輸入你的名字，例如：阿美、大哥" autocomplete="off">'
+  +   '<div class="hint">家人動態會顯示這個名字，看得出來是誰打的電話、誰寫的筆記。</div></div>'
+  + '<div class="sec"><h3 class="sectitle">家人動態</h3>' + feedHtml() + '</div>'
+  + '<div class="sec"><h3 class="sectitle">雲端試算表</h3>'
+  +   '<div class="lbl">APPS SCRIPT 網址</div>'
+  +   '<input class="inp" id="cfgApi" value="' + esc(cfg.api) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false">'
+  +   '<div class="lbl" style="margin-top:10px">通關碼</div>'
+  +   '<input class="inp" id="cfgToken" value="' + esc(cfg.token) + '" placeholder="與 Code.gs 裡的 TOKEN 相同" autocomplete="off" spellcheck="false">'
+  +   '<div class="hint">設定好之後按下面「複製家人邀請連結」，用 LINE 傳給家人，他們一開就自動設定完成。</div>'
+  +   '<div class="linkrow" style="margin-top:10px"><button class="gbtn" id="copyInvite">複製家人邀請連結</button>'
+  +   '<button class="gbtn" id="reload">重新載入</button></div>'
+  + '</div>'
+  + '<div class="sec"><h3 class="sectitle">本機備份</h3>'
+  +   '<div class="tip">沒有雲端時也能保存：複製這段備份碼貼到備忘錄，換手機再貼回來。</div>'
+  +   '<div class="tools" style="margin-top:8px"><textarea id="dump" readonly>' + esc(JSON.stringify(rec, null, 1)) + '</textarea>'
+  +   '<div class="linkrow" style="margin-top:8px"><button class="gbtn" id="copyDump">複製備份碼</button>'
+  +   '<button class="gbtn" id="pasteMode">貼上還原</button></div></div>'
+  + '</div>'
+  + '<div class="sec"><div class="tip"><b>放到 iPhone 主畫面：</b>用 Safari 開這一頁 → 底部「分享」→ 加入主畫面。之後就像 App 一樣一按就開。</div></div>'
+  + '<div class="sheet-foot"><button class="prim" id="closeSheet">完成</button></div>';
+  showSheet();
+}
+
+/* ============ 事件 ============ */
+var toastEl = $("#toast"), toastTimer;
+function toast(msg){
+  toastEl.textContent = msg; toastEl.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.classList.remove("on"); }, 2200);
+}
+function copyText(t, ok){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){ toast(ok); }, function(){ toast("複製失敗，請長按選取"); });
+  } else {
+    var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta);
+    ta.select(); try{ document.execCommand("copy"); toast(ok); }catch(e){ toast("複製失敗，請長按選取"); }
+    document.body.removeChild(ta);
+  }
+}
+
+$("#q").addEventListener("input", function(e){
+  state.q = e.target.value.trim();
+  $("#clear").classList.toggle("on", !!state.q);
+  render(); logSearch(state.q);
+});
+$("#clear").addEventListener("click", function(){
+  state.q = ""; $("#q").value = ""; this.classList.remove("on"); render(); $("#q").focus();
+});
+railEl.addEventListener("click", function(e){
+  var b = e.target.closest("button"); if(!b) return;
+  if(b.hasAttribute("data-d")){ state.dist = b.getAttribute("data-d"); if(state.dist) logEvent("篩選區域", state.dist); }
+  else if(b.hasAttribute("data-f2")){ var v = b.getAttribute("data-f2"); state.filter = (state.filter === v) ? "" : v; }
+  renderRail(); render();
+});
+statsEl.addEventListener("click", function(e){
+  var b = e.target.closest("button"); if(!b) return;
+  var f = b.getAttribute("data-f");
+  state.filter = (state.filter === f) ? "" : f;
+  renderRail(); render();
+});
+$("#sort").addEventListener("click", function(){
+  state.sort = state.sort === "id" ? "name" : (state.sort === "name" ? "area" : "id");
+  this.textContent = "排序：" + (state.sort === "id" ? "序號" : state.sort === "name" ? "單位名稱" : "服務區域多");
+  render();
+});
+listEl.addEventListener("click", function(e){
+  var a = e.target.closest("[data-act]");
+  if(a){
+    var dd = byId(a.getAttribute("data-id"));
+    logEvent(a.getAttribute("data-act") === "call" ? "撥打" : "地圖", "", dd);
+    return;
+  }
+  var b = e.target.closest("[data-open]"); if(!b) return;
+  openSheetFor(parseInt(b.getAttribute("data-open"), 10));
+});
+$("#banner").addEventListener("click", function(e){ if(e.target.closest("[data-panel]")) openPanel(); });
+$("#tools").addEventListener("click", openPanel);
+$("#syncBtn").addEventListener("click", openPanel);
+scrim.addEventListener("click", closeSheet);
+
+sheetInner.addEventListener("click", function(e){
+  var t = e.target;
+  if(t.closest("#closeSheet")) return closeSheet();
+  var actEl = t.closest("[data-act]");
+  if(actEl){ logEvent(actEl.getAttribute("data-act") === "call" ? "撥打" : "地圖", "", byId(actEl.getAttribute("data-id"))); return; }
+  if(t.closest("#starBig")){
+    var x = r(openId); x.star = x.star ? 0 : 1; touch(openId);
+    var el = t.closest("#starBig"); el.classList.toggle("on", !!x.star); el.textContent = x.star ? "★" : "☆";
+    logEvent(x.star ? "加星號" : "取消星號", "", byId(openId));
+    return;
+  }
+  if(t.closest("#copyAd")){
+    var d = byId(openId);
+    return copyText(d.nm + "\n" + d.ad + "\n" + d.tel.map(function(v){ return v.n; }).join(" / "), "已複製單位資料");
+  }
+  if(t.closest("#syncNow")){ pull().then(function(){ if(sync.state === "ok"){ toast("同步完成"); openPanel(); } }); return; }
+  if(t.closest("#testApi")){
+    if(!cfg.api) return toast("請先填 Apps Script 網址");
+    jsonp({op:"ping"}).then(function(d){ toast("連線成功：" + (d.name || "試算表")); setSync("ok"); },
+                            function(err){ toast("失敗：" + err.message); setSync("err", err.message); });
+    return;
+  }
+  if(t.closest("#copyInvite")){
+    if(!cfg.api) return toast("請先填 Apps Script 網址");
+    var base = location.origin + location.pathname;
+    return copyText(base + "?api=" + encodeURIComponent(cfg.api) + "&t=" + encodeURIComponent(cfg.token), "已複製邀請連結，貼給家人即可");
+  }
+  if(t.closest("#reload")){ location.reload(); return; }
+  if(t.closest("#copyDump")) return copyText($("#dump").value, "已複製備份碼");
+  if(t.closest("#pasteMode")){
+    var ta = $("#dump"); ta.readOnly = false; ta.value = ""; ta.placeholder = "把備份碼貼在這裡，然後按「還原」";
+    var pb = t.closest("#pasteMode"); pb.textContent = "還原"; pb.id = "doRestore"; ta.focus(); return;
+  }
+  if(t.closest("#doRestore")){
+    try{
+      var obj = JSON.parse($("#dump").value);
+      if(typeof obj !== "object" || !obj) throw 0;
+      rec = obj; save();
+      Object.keys(rec).forEach(function(id){ pending[id] = 1; }); savePending();
+      render(); flush(); toast("已還原 " + Object.keys(obj).length + " 筆紀錄"); openPanel();
+    }catch(err){ toast("備份碼看起來不完整，請整段重貼"); }
+    return;
+  }
+  if(t.closest("#clearRec")){
+    var cid = openId;
+    rec[cid] = {st:"none", star:0, note:"", ts:Date.now(), by:cfg.user || ""};
+    save(); pending[cid] = 1; savePending(); flush();
+    logEvent("清除紀錄", "", byId(cid));
+    toast("已清除這家的紀錄"); closeSheet(); return;
+  }
+  var seg = t.closest(".seg");
+  if(seg){
+    var v = seg.getAttribute("data-v"), rx = r(openId);
+    rx.st = v; touch(openId);
+    Array.prototype.forEach.call(sheetInner.querySelectorAll(".seg"), function(s){ s.setAttribute("aria-pressed", String(s === seg)); });
+    $("#saved").textContent = (cfg.user ? cfg.user + " · " : "") + "更新於 " + fmtTime(rx.ts);
+    logEvent("狀態", ST_MAP[v], byId(openId));
+  }
+});
+
+sheetInner.addEventListener("input", function(e){
+  var id = e.target.id;
+  if(id === "note" && openId != null){
+    var v = e.target.value, x = r(openId), nid = openId;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      x.note = v; touch(nid);
+      var s = $("#saved"); if(s) s.textContent = (cfg.user ? cfg.user + " · " : "") + "已存檔 " + fmtTime(x.ts);
+      logEvent("筆記", v.slice(0, 40), byId(nid));
+    }, 700);
+    return;
+  }
+  if(id === "cfgUser"){ cfg.user = e.target.value.trim(); saveCfg(); setSync(sync.state); return; }
+  if(id === "cfgApi"){ cfg.api = e.target.value.trim(); saveCfg(); setSync(cfg.api ? "err" : "local", cfg.api ? "尚未測試連線" : ""); return; }
+  if(id === "cfgToken"){ cfg.token = e.target.value.trim(); saveCfg(); return; }
+});
+
+document.addEventListener("keydown", function(e){ if(e.key === "Escape" && sheet.classList.contains("on")) closeSheet(); });
+document.addEventListener("visibilitychange", function(){
+  if(!document.hidden && cfg.api && Date.now() - sync.last > 45000) pull();
+});
+window.addEventListener("online", function(){ if(cfg.api) pull(); });
+setInterval(function(){ if(!document.hidden && cfg.api && !sync.busy) pull(); }, 120000);
+
+/* ============ 啟動 ============ */
+renderRail(); render(); setSync(cfg.api ? "busy" : "local");
+if(cfg.api){
+  try{
+    if(!sessionStorage.getItem("ltc-open")){ sessionStorage.setItem("ltc-open", "1"); logEvent("開啟名單", ""); }
+  }catch(e){}
+  pull();
+}
+
+</script>
+</body>
+</html>
