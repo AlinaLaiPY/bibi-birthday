@@ -304,6 +304,11 @@ textarea{
 .gmsg{font-size:13px; margin-top:12px; line-height:1.7; min-height:20px;}
 .gmsg.bad{color:var(--red);}
 .gmsg.good{color:var(--accent-ink);}
+.hintfill{
+  display:block; width:100%; margin-top:8px; padding:10px 12px; border-radius:10px;
+  background:var(--amber-soft); color:var(--amber); font-size:14px; text-align:left; line-height:1.6;
+}
+.hintfill b{font-family:var(--mono); font-size:16px; letter-spacing:.06em;}
 .namechips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
 .namechips button{
   border:1px solid var(--line); background:var(--surface); border-radius:999px;
@@ -442,6 +447,11 @@ var APP_VERSION = 2;
  * 換試算表或重新部署後網址變了，改這一行即可。
  * ==========================================================*/
 var DEFAULT_API = "https://script.google.com/macros/s/AKfycbxQqsFjIl-kLk94UnVRvtT5cePu0r6jrUrPIbJQvJH9NnzLRvLxNxUS_-mV6m34A0HFkw/exec";
+
+/* 密語提示：直接顯示在輸入格下面，點一下就自動填。
+ * 改了上面 Apps Script 的 TOKEN，記得這裡也要一起改。
+ * 不想給提示就設成空字串 ""。 */
+var TOKEN_HINT = "1234";
 
 /* 讓長輩一按就好的常用稱呼 */
 var NAME_CHIPS = ["爸爸", "媽媽", "大哥", "大姊", "小妹", "阿美"];
@@ -723,7 +733,9 @@ function showGate(msg){
     + '<input class="gbig" id="gApi" value="' + esc(cfg.api) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false" inputmode="url"></div>' : "")
   + (needTok ? ''
     + '<div class="gfield"><div class="lbl">通關密語</div>'
-    + '<input class="gbig" id="gToken" value="" placeholder="家人給你的密語" autocomplete="off" autocapitalize="off" spellcheck="false"></div>' : "")
+    + '<input class="gbig" id="gToken" value="" placeholder="家人給你的密語" autocomplete="off" autocapitalize="off" spellcheck="false">'
+    + (TOKEN_HINT ? '<button type="button" class="hintfill" id="gFill">密語就是 <b>' + esc(TOKEN_HINT) + '</b> —— 點這裡自動填</button>' : "")
+    + '</div>' : "")
   + '<div class="gfield"><div class="lbl">你是誰</div>'
   + '<div class="namechips">' + NAME_CHIPS.map(function(n){ return '<button type="button" data-nm="' + n + '">' + n + '</button>'; }).join("") + '</div>'
   + '<input class="gbig" id="gName" value="' + esc(dev.name) + '" placeholder="點上面，或自己打名字" autocomplete="off"></div>'
@@ -743,6 +755,11 @@ $("#gate").addEventListener("click", function(e){
     Array.prototype.forEach.call($("#gate").querySelectorAll("[data-nm]"), function(b){
       b.setAttribute("aria-pressed", String(b === chip));
     });
+    return;
+  }
+  if(e.target.closest("#gFill")){
+    var ti = $("#gToken"); ti.value = TOKEN_HINT; ti.focus();
+    var m = $("#gMsg"); m.className = "gmsg good"; m.textContent = "密語填好了，選一下你是誰再按「開始使用」。";
     return;
   }
   if(e.target.closest("#gAdv")){ gateAdv = true; showGate("需要換試算表時才改這裡。"); return; }
