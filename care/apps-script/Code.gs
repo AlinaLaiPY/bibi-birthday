@@ -14,6 +14,14 @@
 /** 家人共用的通關碼。跟網頁設定裡填的要一樣。請改成自己的。 */
 var TOKEN = 'bibi2026';
 
+/**
+ * 試算表 ID。
+ * 若這份程式碼是從「試算表 → 擴充功能 → Apps Script」開的，留空即可。
+ * 若是直接在 script.google.com 開的獨立專案，請貼上試算表網址中間那一段：
+ * https://docs.google.com/spreadsheets/d/【這一段就是 ID】/edit
+ */
+var SS_ID = '';
+
 /** 使用紀錄最多留幾列，超過就從最舊的刪。 */
 var LOG_KEEP = 3000;
 
@@ -190,7 +198,14 @@ function trimLog(sh) {
 
 /* ============================ 工具 ============================ */
 
-function ss() { return SpreadsheetApp.getActiveSpreadsheet(); }
+function ss() {
+  if (SS_ID) return SpreadsheetApp.openById(SS_ID);
+  var active = SpreadsheetApp.getActiveSpreadsheet();
+  if (!active) {
+    throw new Error('找不到試算表：這是獨立的 Apps Script 專案，請在程式碼上方的 SS_ID 填入試算表 ID');
+  }
+  return active;
+}
 
 function sheetWithHead(name, head) {
   var s = ss().getSheetByName(name);
@@ -211,6 +226,15 @@ function recSheet() {
 }
 
 function logSheet() { return sheetWithHead(LOG_SHEET, LOG_HEAD); }
+
+/** 一鍵檢查：按上方「執行」選這個函式，可確認有沒有接到試算表 */
+function 測試設定() {
+  var s = ss();
+  recSheet(); logSheet();
+  Logger.log('已接上試算表：' + s.getName());
+  Logger.log('資料表就緒：' + REC_SHEET + '、' + LOG_SHEET);
+  return s.getName();
+}
 
 /** 在試算表裡加一個選單，方便測試 */
 function onOpen() {
