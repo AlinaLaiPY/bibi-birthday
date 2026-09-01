@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="早餐採買">
+<meta name="theme-color" content="#1D4E89">
+<title>早餐採買清單</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#F2F5F8;
+    --card:#FFFFFF;
+    --ink:#16202B;
+    --muted:#63758A;
+    --line:#D7DFE8;
+    --field:#FFFFFF;
+    --sign:#1D4E89;        /* 招牌藍 */
+    --on-sign:#FFFFFF;
+    --sign-soft:#E7EEF7;
+    --menu-red:#C6362F;    /* 菜單紅字 */
+    --menu-red-soft:#FBEAE8;
+    --done:#8C9AAA;
+    --shadow:0 1px 2px rgba(22,32,43,.06),0 8px 24px rgba(22,32,43,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F151C; --card:#18212B; --ink:#E7EDF4; --muted:#93A3B5;
+      --line:#2A3745; --field:#111922;
+      --sign:#7FB0E8; --on-sign:#0F151C; --sign-soft:#1B2A3C;
+      --menu-red:#F08A80; --menu-red-soft:#33201F;
+      --done:#5C6C7C;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F151C; --card:#18212B; --ink:#E7EDF4; --muted:#93A3B5;
+    --line:#2A3745; --field:#111922;
+    --sign:#7FB0E8; --on-sign:#0F151C; --sign-soft:#1B2A3C;
+    --menu-red:#F08A80; --menu-red-soft:#33201F;
+    --done:#5C6C7C;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box;}
+  html{color-scheme:light dark;-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  img{max-width:100%;}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 20px 72px;}
+
+  /* ---- header ---- */
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px 32px;padding-bottom:22px;border-bottom:2px solid var(--ink);}
+  .eyebrow{font-size:12px;letter-spacing:.22em;color:var(--menu-red);font-weight:700;}
+  h1{font-family:"Noto Serif TC",serif;font-weight:700;font-size:clamp(30px,5vw,44px);line-height:1.2;margin:6px 0 4px;text-wrap:balance;}
+  .sub{color:var(--muted);font-size:14px;margin:0;}
+  .tally{margin-left:auto;display:flex;gap:26px;}
+  .tally div{text-align:right;}
+  .tally b{display:block;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .tally span{font-size:12px;color:var(--muted);letter-spacing:.08em;}
+
+  /* ---- add panel ---- */
+  .panel{
+    margin-top:26px;background:var(--card);border:1px solid var(--line);border-radius:4px;
+    box-shadow:var(--shadow);padding:20px 22px;
+  }
+  .panel > summary{
+    list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    font-family:"Noto Serif TC",serif;font-size:19px;font-weight:600;
+  }
+  .panel > summary::-webkit-details-marker{display:none;}
+  .panel > summary::after{content:'＋';margin-left:auto;color:var(--sign);font-size:20px;line-height:1;}
+  .panel[open] > summary::after{content:'－';}
+  .panel > summary .sum-note{font-family:inherit;font-size:12.5px;font-weight:400;color:var(--muted);}
+  .panel > summary:focus-visible{outline:2px solid var(--sign);outline-offset:3px;}
+  .panel[open] > summary{margin-bottom:6px;}
+
+  /* 置頂跳轉列：站在店門口時直接跳到那間 */
+  .jump{
+    position:sticky;top:0;z-index:5;margin-top:22px;
+    display:flex;align-items:center;gap:8px;overflow-x:auto;
+    padding:10px 2px;background:var(--paper);border-bottom:1px solid var(--line);
+  }
+  .jump a{
+    flex:0 0 auto;text-decoration:none;font-size:14px;font-weight:500;
+    color:var(--sign);border:1px solid var(--line);border-radius:999px;
+    padding:7px 15px;background:var(--card);
+  }
+  .jump a:active{background:var(--sign-soft);}
+  .jump a:focus-visible{outline:2px solid var(--sign);outline-offset:2px;}
+  .prog{
+    margin-left:auto;flex:0 0 auto;padding-left:10px;
+    font-family:"IBM Plex Mono",monospace;font-size:13px;
+    font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;
+  }
+  .panel .hint{margin:0 0 14px;}
+  textarea,input[type="text"],input[type="number"],select{
+    font:inherit;font-size:16px;color:var(--ink);background:var(--field);
+    border:1px solid var(--line);border-radius:3px;padding:10px 11px;width:100%;
+  }
+  textarea{min-height:92px;resize:vertical;line-height:1.6;}
+  textarea:focus,input:focus,select:focus{outline:2px solid var(--sign);outline-offset:-1px;border-color:var(--sign);}
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;align-items:center;}
+  button{
+    font:inherit;font-weight:500;cursor:pointer;border-radius:3px;padding:11px 18px;
+    min-height:44px;border:1px solid var(--sign);background:var(--sign);color:#fff;
+  }
+  button.ghost{background:transparent;color:var(--sign);}
+  button.quiet{background:transparent;color:var(--muted);border-color:var(--line);}
+  button:hover{filter:brightness(1.08);}
+  button:focus-visible{outline:2px solid var(--menu-red);outline-offset:2px;}
+  .flash{margin-top:12px;font-size:13.5px;padding:9px 12px;border-radius:3px;background:var(--sign-soft);color:var(--ink);}
+  .flash.bad{background:var(--menu-red-soft);}
+  details.manual{margin-top:14px;border-top:1px solid var(--line);padding-top:12px;}
+  details.manual summary{cursor:pointer;font-size:13.5px;color:var(--sign);}
+  .fields{display:grid;grid-template-columns:1.1fr 2fr .6fr 1.2fr;gap:10px;margin-top:12px;}
+  .fields label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;letter-spacing:.1em;color:var(--muted);font-weight:700;}
+  @media (max-width:620px){.fields{grid-template-columns:1fr 1fr;}}
+
+  /* ---- store cards ---- */
+  .store{scroll-margin-top:72px;}
+  .stores{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;margin-top:20px;align-items:start;}
+  .store{background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);overflow:hidden;}
+  .store > h2{
+    margin:0;padding:14px 18px;background:var(--sign);color:var(--on-sign);
+    font-family:"Noto Serif TC",serif;font-size:19px;font-weight:600;letter-spacing:.06em;
+    display:flex;align-items:baseline;gap:10px;
+  }
+  .store > h2 small{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:400;opacity:.85;letter-spacing:.05em;margin-left:auto;}
+  .store.alt > h2{background:var(--menu-red);}
+  .store.pos > h2{background:var(--ink);color:var(--paper);}
+  .note-strip{padding:9px 18px;font-size:12.5px;color:var(--muted);background:var(--sign-soft);border-bottom:1px solid var(--line);}
+  .store.alt .note-strip{background:var(--menu-red-soft);}
+
+  ul.items{list-style:none;margin:0;padding:0;}
+  ul.items li{border-bottom:1px solid var(--line);}
+  ul.items li:last-child{border-bottom:0;}
+  label.row{display:grid;grid-template-columns:20px 1fr auto;gap:4px 12px;align-items:baseline;padding:11px 18px;cursor:pointer;}
+  label.row input{margin:0;width:15px;height:15px;accent-color:var(--sign);align-self:center;}
+  .name{font-weight:500;font-size:16px;}
+  .qty{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;font-variant-numeric:tabular-nums;color:var(--menu-red);white-space:nowrap;}
+  .who{grid-column:2 / -1;font-size:12.5px;color:var(--muted);}
+  label.row:has(input:checked) .name,
+  label.row:has(input:checked) .who{color:var(--done);text-decoration:line-through;text-decoration-thickness:1px;}
+  label.row:has(input:checked) .qty{color:var(--done);}
+  label.row:focus-within{outline:2px solid var(--sign);outline-offset:-2px;}
+  .empty{padding:14px 18px;font-size:13.5px;color:var(--muted);}
+  .subtotal{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:12px 18px;border-top:2px solid var(--ink);font-size:13px;color:var(--muted);}
+  .subtotal b{font-family:"IBM Plex Mono",monospace;font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+  /* ---- sections ---- */
+  section{margin-top:38px;}
+  h3{font-family:"Noto Serif TC",serif;font-size:20px;font-weight:600;margin:0 0 4px;}
+  .hint{color:var(--muted);font-size:13px;margin:0 0 16px;}
+  .scroller{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:4px;box-shadow:var(--shadow);}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:14.5px;}
+  th,td{text-align:left;padding:10px 16px;border-bottom:1px solid var(--line);vertical-align:top;}
+  thead th{font-size:11.5px;letter-spacing:.14em;color:var(--muted);font-weight:700;background:var(--sign-soft);border-bottom:1px solid var(--line);white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:0;}
+  td.person{font-weight:700;white-space:nowrap;}
+  td.dishes{min-width:200px;}
+  .dish{display:block;}
+  .dish .mod{color:var(--muted);font-size:12.5px;}
+  .dish select{width:auto;padding:4px 8px;font-size:16px;margin-left:6px;}
+  .dish.unresolved{color:var(--menu-red);}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.06em;padding:1px 7px;border-radius:2px;border:1px solid currentColor;white-space:nowrap;margin-right:4px;}
+  .t-stall{color:var(--sign);}
+  .t-deji{color:var(--menu-red);}
+  .t-cvs{color:var(--muted);}
+  td.split{font-size:12px;color:var(--menu-red);white-space:nowrap;}
+  td.del{text-align:right;}
+  td.del button{padding:3px 9px;font-size:12px;}
+
+  /* ---- warnings ---- */
+  section.checks{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--menu-red);border-radius:4px;padding:20px 22px;box-shadow:var(--shadow);}
+  section.checks ul{margin:10px 0 0;padding-left:20px;}
+  section.checks li{margin-bottom:8px;font-size:14.5px;}
+  section.checks li:last-child{margin-bottom:0;}
+
+  /* ---- menu photos ---- */
+  .menus{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+  .menus figure{margin:0;background:var(--card);border:1px solid var(--line);border-radius:4px;overflow:hidden;box-shadow:var(--shadow);}
+  .menus img{display:block;width:100%;height:200px;object-fit:cover;background:var(--sign-soft);}
+  .menus figcaption{padding:9px 14px;font-size:12.5px;color:var(--muted);}
+  .menus a:focus-visible{outline:2px solid var(--sign);outline-offset:2px;}
+
+  footer{margin-top:34px;color:var(--muted);font-size:12.5px;line-height:1.8;}
+  /* 手機：個人對照改成一人一張卡，不用左右滑 */
+  @media (max-width:640px){
+    .scroller{overflow:visible;background:transparent;border:0;box-shadow:none;}
+    table{min-width:0;}
+    thead{display:none;}
+    tbody tr{
+      display:grid;grid-template-columns:1fr auto;gap:4px 10px;
+      background:var(--card);border:1px solid var(--line);border-radius:4px;
+      box-shadow:var(--shadow);padding:12px 14px;margin-bottom:12px;
+    }
+    tbody td{border:0;padding:0;}
+    td.person{grid-column:1;grid-row:1;font-size:17px;}
+    td.del{grid-column:2;grid-row:1;text-align:right;}
+    td.del button{min-height:38px;padding:6px 14px;}
+    td.dishes,td.tags,td.split{grid-column:1 / -1;}
+    td.split:empty,td.tags:empty{display:none;}
+    .dish{margin-bottom:2px;}
+    .dish select{margin-left:0;margin-top:4px;display:block;}
+  }
+  /* 觸控：勾選框和列高加大 */
+  @media (pointer:coarse){
+    label.row{grid-template-columns:26px 1fr auto;padding:14px 16px;}
+    label.row input{width:22px;height:22px;}
+    .name{font-size:16.5px;}
+  }
+  @media (max-width:520px){
+    .tally{margin-left:0;gap:20px;}
+    .wrap{padding:28px 16px 56px;}
+    .actions{flex-direction:column;align-items:stretch;}
+    .actions button{width:100%;}
+    .menus img{height:150px;}
+    .panel{padding:18px 16px;}
+    section.checks{padding:18px 16px;}
+  }
+  @media print{
+    body{background:#fff;}
+    .panel,.menus,td.del,.jump{display:none;}
+    .store,.scroller,section.checks{box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow" id="eyebrow">2 間早餐店＋超商</div>
+      <h1>早餐採買清單</h1>
+      <p class="sub">依兩間店的菜單拆單，現場逐項打勾清點</p>
+    </div>
+    <div class="tally">
+      <div><b id="tally-items">0</b><span>總份數</span></div>
+      <div><b id="tally-people">0</b><span>人</span></div>
+    </div>
+  </header>
+
+  <details class="panel" id="add-panel" open>
+    <summary><span class="sum-title">新增點餐</span><span class="sum-note">貼上 LINE 傳來的字</span></summary>
+    <p class="hint">一行一個人，例如「王大明：御飯團＋熱奶茶」。可以一次貼好幾行。</p>
+    <textarea id="paste" placeholder="王大明：御飯團＋熱奶茶&#10;李小美：燒餅夾蛋、冰豆漿"></textarea>
+    <div class="actions">
+      <button type="button" id="btn-add">加入清單</button>
+      <button type="button" class="ghost" id="btn-copy">複製整份清單</button>
+      <button type="button" class="quiet" id="btn-reset">回到預設清單</button>
+    </div>
+    <div class="flash" id="flash" hidden></div>
+
+    <details class="manual">
+      <summary>認不出品項的話，用選單一項一項加</summary>
+      <div class="fields">
+        <label>姓名<input type="text" id="m-who" autocomplete="off"></label>
+        <label>品項<select id="m-item"></select></label>
+        <label>數量<input type="number" id="m-qty" value="1" min="1" max="20"></label>
+        <label>備註（冰熱、糖度）<input type="text" id="m-note" autocomplete="off" placeholder="熱、無糖"></label>
+      </div>
+      <div class="actions"><button type="button" class="ghost" id="btn-manual">加入這一項</button></div>
+    </details>
+  </details>
+
+  <nav class="jump">
+    <a href="#shop-stall">無名店</a>
+    <a href="#shop-deji">德記</a>
+    <a href="#shop-cvs">7-11</a>
+    <span class="prog" id="prog"></span>
+  </nav>
+
+  <div class="stores" id="stores"></div>
+
+  <section>
+    <h3>個人對照</h3>
+    <p class="hint">發放時逐人核對。標「跨店」的要兩間都買到才完整；品項後面有下拉的表示兩間店都有，可以自己換。</p>
+    <div class="scroller">
+      <table>
+        <thead><tr><th>姓名</th><th>品項</th><th>店家</th><th></th><th></th></tr></thead>
+        <tbody id="people"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="checks" id="checks" hidden>
+    <h3>下單前要確認</h3>
+    <ul id="warnings"></ul>
+  </section>
+
+  <section>
+    <h3>菜單存檔</h3>
+    <p class="hint">點圖可看原檔，現場對品項用。</p>
+    <div class="menus">
+      <figure>
+        <a href="menus/stall-front.jpg"><img src="menus/stall-front.jpg" alt="無名早餐店攤位，看板寫著碗粿、現煮研磨咖啡、御飯糰、水煎包 18 元"></a>
+        <figcaption>無名店・攤位看板</figcaption>
+      </figure>
+      <figure>
+        <a href="menus/stall-menu.jpg"><img src="menus/stall-menu.jpg" alt="無名早餐店牆上價目表，三明治、捲餅、飲品品項與價格"></a>
+        <figcaption>無名店・牆上價目表</figcaption>
+      </figure>
+      <figure>
+        <a href="menus/deji-menu.jpg"><img src="menus/deji-menu.jpg" alt="德記早餐店價目表，包子、燒餅、蛋餅、飯糰品項"></a>
+        <figcaption>德記・價目表</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <footer>
+    金額依無名店牆上價目表估算；德記價目表照片字跡模糊，蛋餅與燒餅價格沒列入，現場結帳為準。<br>
+    點餐內容存在這支手機的瀏覽器裡，換手機或清掉瀏覽資料就會回到原始 8 人。
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 店家 ---------- */
+  var SHOPS = {
+    stall: { label:'無名早餐店', sub:'圖 1 · 2', cls:'',    note:'主餐、飯糰、三明治、飲品都在這間' },
+    deji:  { label:'德記',       sub:'圖 3',     cls:'alt', note:'蛋餅、燒餅、包子類只有這間有' },
+    cvs:   { label:'7-11',       sub:'統一大杯', cls:'pos', note:'咖啡一律超商精品咖啡，統一大杯，不在早餐店買' }
+  };
+  var SHOP_ORDER = ['stall', 'deji', 'cvs'];
+
+  /* ---------- 菜單 ----------
+     price 為 null 表示價目表看不清楚，只算份數不算錢。
+     alt 是「兩間店都有」時的另一間，頁面上可以切換。 */
+  var MENU = [
+    // 無名早餐店
+    { id:'onigiri',   name:'御飯糰',       shop:'stall', price:40,   alias:['御飯團','御飯糰'] },
+    { id:'veg-roll',  name:'蔬菜捲',       shop:'stall', price:35,   alias:['蔬菜捲'] },
+    { id:'ww-roll',   name:'全麥蔬菜捲',   shop:'stall', price:35,   alias:['全麥蔬菜捲'] },
+    { id:'veg-wrap',  name:'蔬菜捲餅',     shop:'stall', price:40,   alias:['蔬菜捲餅','捲餅'] },
+    { id:'toon-pan',  name:'香椿抓餅',     shop:'stall', price:30,   alias:['香椿抓餅','抓餅'] },
+    { id:'panbun',    name:'水煎包',       shop:'stall', price:18,   alias:['全麥水煎包','水煎包'] },
+    { id:'sw-veg',    name:'蔬果三明治',   shop:'stall', price:35,   alias:['蔬果三明治'] },
+    { id:'sw-taro',   name:'芋香三明治',   shop:'stall', price:35,   alias:['芋香三明治'] },
+    { id:'sw-cheese', name:'起司三明治',   shop:'stall', price:35,   alias:['起司三明治','起士三明治'] },
+    { id:'sw-health', name:'養生三明治',   shop:'stall', price:35,   alias:['養生三明治'] },
+    { id:'wagui',     name:'碗粿',         shop:'stall', price:30,   alias:['碗粿'] },
+    { id:'sushi',     name:'壽司',         shop:'stall', price:55,   alias:['壽司'] },
+    { id:'milk-tea',  name:'奶茶',         shop:'stall', price:25,   alias:['奶茶'], alt:'deji' },
+    { id:'fresh-tea', name:'鮮奶茶',       shop:'stall', price:30,   alias:['鮮奶茶'] },
+    { id:'black-tea', name:'紅茶',         shop:'stall', price:10,   alias:['紅茶'], alt:'deji' },
+    { id:'rice-milk', name:'米漿',         shop:'stall', price:20,   alias:['米漿'], alt:'deji' },
+    { id:'bean-rice', name:'豆米漿',       shop:'stall', price:20,   alias:['豆米漿'] },
+    { id:'red-bean',  name:'紅豆薏仁漿',   shop:'stall', price:30,   alias:['紅豆薏仁漿'] },
+    { id:'rb-plain',  name:'紅豆薏仁',     shop:'stall', price:45,   alias:['紅豆薏仁'] },
+    { id:'black-soy', name:'黑豆漿',       shop:'stall', price:20,   alias:['黑豆漿'] },
+    { id:'sprout-soy',name:'催芽豆漿',     shop:'stall', price:20,   alias:['催芽豆漿'] },
+    { id:'radish',    name:'蘿蔔糕',       shop:'stall', price:30,   alias:['蘿蔔糕'], alt:'deji' },
+    // 德記（價格未列，現場結）
+    { id:'eggcake-cheese', name:'起司蛋餅', shop:'deji', price:null, alias:['起司蛋餅','起士蛋餅'] },
+    { id:'eggcake-ham',    name:'火腿蛋餅', shop:'deji', price:null, alias:['火腿蛋餅'] },
+    { id:'eggcake-corn',   name:'玉米蛋餅', shop:'deji', price:null, alias:['玉米蛋餅'] },
+    { id:'eggcake-toon',   name:'香椿蛋餅', shop:'deji', price:null, alias:['香椿蛋餅'] },
+    { id:'eggcake-mush',   name:'蘑菇蛋餅', shop:'deji', price:null, alias:['蘑菇蛋餅','磨菇蛋餅'] },
+    { id:'eggcake',        name:'蛋餅',     shop:'deji', price:null, alias:['蛋餅'] },
+    { id:'sb-egg',   name:'燒餅夾蛋',   shop:'deji', price:null, alias:['燒餅夾蛋','燒餅加蛋','燒餅蛋'] },
+    { id:'sb-stick', name:'燒餅油條',   shop:'deji', price:null, alias:['燒餅油條'] },
+    { id:'shaobing', name:'燒餅',       shop:'deji', price:null, alias:['燒餅'] },
+    { id:'youtiao',  name:'油條',       shop:'deji', price:null, alias:['油條'] },
+    { id:'fried-egg',name:'荷包蛋',     shop:'deji', price:null, alias:['荷包蛋'] },
+    { id:'rb-trad',  name:'傳統飯糰',   shop:'deji', price:null, alias:['傳統飯糰'] },
+    { id:'rb-ham',   name:'火腿飯糰',   shop:'deji', price:null, alias:['火腿飯糰'] },
+    { id:'mantou',   name:'饅頭',       shop:'deji', price:null, alias:['饅頭'] },
+    { id:'bun-veg',  name:'奶素包',     shop:'deji', price:null, alias:['奶素包'] },
+    { id:'bun-taro', name:'筍芋包',     shop:'deji', price:null, alias:['筍芋包'] },
+    { id:'bun-bean', name:'紅豆包',     shop:'deji', price:null, alias:['紅豆包'] },
+    { id:'bun-tofu', name:'豆包',       shop:'deji', price:null, alias:['豆包'] },
+    { id:'salty-soy',name:'鹹豆漿',     shop:'deji', price:null, alias:['鹹豆漿'] },
+    { id:'soy-milk', name:'豆漿',       shop:'deji', price:null, alias:['豆漿'] },
+    // 7-11（咖啡一律超商，統一大杯）
+    { id:'latte',    name:'拿鐵',   shop:'cvs', price:null, alias:['拿鐵','拿堤','latte','大拿','拿'] },
+    { id:'americano',name:'美式',   shop:'cvs', price:null, alias:['美式','americano'] },
+    { id:'coffee',   name:'咖啡',   shop:'cvs', price:null, alias:['咖啡'] }
+  ];
+
+  var BY_ID = {};
+  MENU.forEach(function (m) { BY_ID[m.id] = m; });
+
+  // 長的別名先比，避免「蔬菜捲」先吃掉「蔬菜捲餅」
+  var ALIASES = [];
+  MENU.forEach(function (m) {
+    m.alias.forEach(function (a) { ALIASES.push({ text:a, id:m.id }); });
+  });
+  ALIASES.sort(function (a, b) { return b.text.length - a.text.length; });
+
+  var MODIFIERS = ['去冰','微糖','半糖','少糖','無糖','正常糖','大杯','小杯','冰','熱','溫'];
+  var CN_NUM = { 一:1, 二:2, 兩:2, 三:3, 四:4, 五:5, 六:6, 七:7, 八:8, 九:9, 十:10 };
+
+  /* ---------- 原始 8 人 ---------- */
+  function seed() {
+    return [
+      { who:'永正', items:[ i('onigiri'), i('eggcake-cheese') ] },
+      { who:'正嘉', items:[ i('sb-egg'), i('bean-rice') ], warn:'豆米漿沒說要冰的還是熱的' },
+      { who:'空慧', items:[ i('wagui'), i('sushi'), i('latte','熱') ] },
+      { who:'明華', items:[ i('sw-veg'), i('milk-tea','熱') ], warn:'熱奶茶兩間都有，目前算無名店（品項後面的下拉可以改）' },
+      { who:'安素', items:[ i('veg-wrap'), i('latte','熱') ] },
+      { who:'品華', items:[ i('panbun','',2) ] },
+      { who:'秋滿', items:[ i('sw-veg'), i('fresh-tea','熱・無糖') ], warn:'鮮奶茶記得交代熱、無糖；無名店分大小杯，這裡算大杯 30 元' },
+      { who:'淨宜', items:[ i('onigiri'), i('bean-rice','冰') ] },
+      { who:'垣銘', items:[ i('wagui'), i('panbun','',2) ] },
+      { who:'明宇', items:[ i('sb-egg'), i('bean-rice','熱') ] },
+      { who:'品元', items:[ i('latte','熱') ] }
+    ];
+  }
+  function i(id, note, qty) { return { id:id, note:note || '', qty:qty || 1 }; }
+
+  /* ---------- 儲存 ---------- */
+  var KEY_ORDERS = 'bf-orders-v2';
+  var KEY_CHECKED = 'bf-checked-v2';
+  var orders, checked;
+
+  function load() {
+    orders = null;
+    try {
+      var raw = localStorage.getItem(KEY_ORDERS);
+      if (raw) { orders = JSON.parse(raw); }
+    } catch (e) {}
+    if (!Array.isArray(orders) || !orders.length) { orders = seed(); }
+
+    checked = {};
+    try {
+      var rawC = localStorage.getItem(KEY_CHECKED);
+      if (rawC) { JSON.parse(rawC).forEach(function (k) { checked[k] = true; }); }
+    } catch (e) {}
+  }
+  function save() {
+    try {
+      localStorage.setItem(KEY_ORDERS, JSON.stringify(orders));
+      localStorage.setItem(KEY_CHECKED, JSON.stringify(Object.keys(checked)));
+    } catch (e) {}
+  }
+
+  /* ---------- 解析 LINE 文字 ---------- */
+  function parseLines(text) {
+    var out = { added:[], failed:[], unresolved:0 };
+    text.split(/\r?\n/).forEach(function (line) {
+      line = line.trim();
+      if (!line) { return; }
+
+      var split = line.split(/[:：]/);
+      var who, rest;
+      if (split.length > 1) {
+        who = split.shift().trim();
+        rest = split.join('：').trim();
+      } else {
+        // 沒有冒號時，取開頭 2-3 個字當名字
+        var m = line.match(/^([一-龥]{2,3})\s+(.+)$/);
+        if (!m) { out.failed.push(line); return; }
+        who = m[1]; rest = m[2];
+      }
+      if (!who || !rest) { out.failed.push(line); return; }
+
+      var items = rest.split(/[+＋、,，\/･·]+/).map(function (s) { return s.trim(); })
+        .filter(Boolean).map(parseItem);
+      if (!items.length) { out.failed.push(line); return; }
+
+      items.forEach(function (it) { if (it.raw) { out.unresolved++; } });
+      orders.push({ who:who, items:items });
+      out.added.push(who);
+    });
+    return out;
+  }
+
+  function parseItem(frag) {
+    var qty = 1, note = [], text = frag;
+
+    // 數量：×2 / x2 / 2份 / 兩杯
+    var q = text.match(/[x×✕*]\s*(\d+)/i) || text.match(/(\d+)\s*[份個杯顆]/);
+    if (q) { qty = parseInt(q[1], 10); text = text.replace(q[0], ''); }
+    else {
+      var cn = text.match(/([一二兩三四五六七八九十])\s*[份個杯顆]/);
+      if (cn) { qty = CN_NUM[cn[1]]; text = text.replace(cn[0], ''); }
+    }
+
+    // 冰熱、糖度
+    MODIFIERS.forEach(function (mod) {
+      if (text.indexOf(mod) !== -1) { note.push(mod); text = text.split(mod).join(''); }
+    });
+
+    var clean = text.replace(/[\s()（）]/g, '');
+    var hit = null;
+    for (var n = 0; n < ALIASES.length; n++) {
+      if (clean.indexOf(ALIASES[n].text) !== -1) { hit = ALIASES[n].id; break; }
+    }
+    if (qty < 1 || qty > 20) { qty = 1; }
+
+    if (!hit) { return { raw:frag, qty:qty, note:'' }; }
+    return { id:hit, qty:qty, note:note.join('・') };
+  }
+
+  /* ---------- 統計 ---------- */
+  function shopOf(item) {
+    if (item.raw) { return null; }
+    return item.shop || BY_ID[item.id].shop;
+  }
+
+  function aggregate() {
+    var buckets = {};
+    SHOP_ORDER.forEach(function (s) { buckets[s] = []; });
+    var index = {};
+
+    orders.forEach(function (person) {
+      person.items.forEach(function (item) {
+        var shop = shopOf(item);
+        if (!shop) { return; }
+        var key = shop + ':' + item.id + ':' + item.note;
+        if (!index[key]) {
+          index[key] = { key:key, id:item.id, shop:shop, note:item.note, qty:0, who:[] };
+          buckets[shop].push(index[key]);
+        }
+        index[key].qty += item.qty;
+        index[key].who.push(person.who + (item.qty > 1 ? ' ×' + item.qty : ''));
+      });
+    });
+    return buckets;
+  }
+
+  /* ---------- 畫面 ---------- */
+  var esc = function (s) {
+    return String(s).replace(/[&<>"]/g, function (c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+    });
+  };
+
+  function render() {
+    var buckets = aggregate();
+    var totalItems = 0, unresolved = 0;
+
+    var storesHtml = SHOP_ORDER.map(function (shop) {
+      var meta = SHOPS[shop];
+      var rows = buckets[shop];
+      var count = 0, money = 0, hasFree = false;
+
+      var lis = rows.map(function (r) {
+        var m = BY_ID[r.id];
+        // 品項被切到另一間店時，原本那間的價格不算數
+        var price = (r.shop === m.shop) ? m.price : null;
+        count += r.qty;
+        if (price === null) { hasFree = true; } else { money += price * r.qty; }
+        var label = esc(m.name) + (r.note ? '（' + esc(r.note) + '）' : '');
+        return '<li><label class="row">' +
+          '<input type="checkbox" data-key="' + esc(r.key) + '"' + (checked[r.key] ? ' checked' : '') + '>' +
+          '<span class="name">' + label + '</span>' +
+          '<span class="qty">×' + r.qty + '</span>' +
+          '<span class="who">' + esc(r.who.join('、')) + '</span>' +
+          '</label></li>';
+      }).join('');
+
+      totalItems += count;
+      var sum = hasFree
+        ? (money > 0 ? '約 ' + money + ' 元＋現場' : '現場結帳')
+        : '約 ' + money + ' 元';
+
+      return '<div class="store ' + meta.cls + '" id="shop-' + shop + '">' +
+        '<h2>' + esc(meta.label) + ' <small>' + esc(meta.sub) + '</small></h2>' +
+        '<div class="note-strip">' + esc(meta.note) + '</div>' +
+        (lis ? '<ul class="items">' + lis + '</ul>' : '<p class="empty">目前沒有這間的品項</p>') +
+        '<div class="subtotal"><span>' + count + ' 份</span><b>' + sum + '</b></div>' +
+        '</div>';
+    }).join('');
+
+    document.getElementById('stores').innerHTML = storesHtml;
+
+    // 個人對照
+    var peopleHtml = orders.map(function (person, pi) {
+      var shopsUsed = {};
+      var dishes = person.items.map(function (item, ii) {
+        if (item.raw) {
+          unresolved++;
+          return '<span class="dish unresolved">「' + esc(item.raw) + '」認不出來' +
+            menuSelect(pi, ii, null) + '</span>';
+        }
+        var m = BY_ID[item.id];
+        var shop = shopOf(item);
+        shopsUsed[shop] = true;
+        var alt = m.alt
+          ? '<select data-shop-of="' + pi + ':' + ii + '">' +
+            [m.shop, m.alt].map(function (s) {
+              return '<option value="' + s + '"' + (s === shop ? ' selected' : '') + '>' + SHOPS[s].label + '</option>';
+            }).join('') + '</select>'
+          : '';
+        return '<span class="dish">' + esc(m.name) + (item.qty > 1 ? ' ×' + item.qty : '') +
+          (item.note ? ' <span class="mod">（' + esc(item.note) + '）</span>' : '') + alt + '</span>';
+      }).join('');
+
+      var tags = SHOP_ORDER.filter(function (s) { return shopsUsed[s]; }).map(function (s) {
+        return '<span class="tag t-' + s + '">' + esc(SHOPS[s].label) + '</span>';
+      }).join('');
+      var shopCount = Object.keys(shopsUsed).filter(function (s) { return s !== 'cvs'; }).length;
+
+      return '<tr>' +
+        '<td class="person">' + esc(person.who) + '</td>' +
+        '<td class="dishes">' + dishes + '</td>' +
+        '<td class="tags">' + tags + '</td>' +
+        '<td class="split">' + (shopCount > 1 ? '跨店' : '') + '</td>' +
+        '<td class="del"><button type="button" class="quiet" data-del="' + pi + '">刪除</button></td>' +
+        '</tr>';
+    }).join('');
+
+    document.getElementById('people').innerHTML = peopleHtml ||
+      '<tr><td colspan="5" class="empty">還沒有人點餐</td></tr>';
+
+    // 待確認
+    var warns = [];
+    orders.forEach(function (p) { if (p.warn) { warns.push(esc(p.who) + '：' + esc(p.warn)); } });
+    if (unresolved) { warns.push('有 ' + unresolved + ' 項認不出來，請在「個人對照」用下拉選單指定，或直接刪掉重加。'); }
+    var box = document.getElementById('checks');
+    document.getElementById('warnings').innerHTML = warns.map(function (w) { return '<li>' + w + '</li>'; }).join('');
+    box.hidden = warns.length === 0;
+
+    updateProgress();
+    document.getElementById('tally-items').textContent = totalItems;
+    document.getElementById('tally-people').textContent = orders.length;
+    document.getElementById('eyebrow').textContent = orders.length + ' 人・2 間早餐店＋超商';
+  }
+
+  // 置頂那行的「已買 x/y」，數的是清單上的列數
+  function updateProgress() {
+    var boxes = document.querySelectorAll('.store input[type="checkbox"]');
+    var done = 0;
+    for (var n = 0; n < boxes.length; n++) { if (boxes[n].checked) { done++; } }
+    document.getElementById('prog').textContent = '已買 ' + done + ' / ' + boxes.length;
+  }
+
+  function menuSelect(pi, ii, current) {
+    var groups = SHOP_ORDER.map(function (shop) {
+      var opts = MENU.filter(function (m) { return m.shop === shop; }).map(function (m) {
+        return '<option value="' + m.id + '"' + (m.id === current ? ' selected' : '') + '>' + esc(m.name) + '</option>';
+      }).join('');
+      return '<optgroup label="' + esc(SHOPS[shop].label) + '">' + opts + '</optgroup>';
+    }).join('');
+    return '<select data-fix="' + pi + ':' + ii + '"><option value="">選品項…</option>' + groups + '</select>';
+  }
+
+  /* ---------- 複製成文字 ---------- */
+  function asText() {
+    var buckets = aggregate();
+    var lines = ['早餐採買清單', ''];
+    SHOP_ORDER.forEach(function (shop) {
+      var rows = buckets[shop];
+      if (!rows.length) { return; }
+      var count = 0;
+      rows.forEach(function (r) { count += r.qty; });
+      lines.push('【' + SHOPS[shop].label + '】' + count + ' 份');
+      rows.forEach(function (r) {
+        var m = BY_ID[r.id];
+        lines.push('・' + m.name + (r.note ? '（' + r.note + '）' : '') + ' ×' + r.qty + '　' + r.who.join('、'));
+      });
+      lines.push('');
+    });
+    return lines.join('\n').trim();
+  }
+
+  /* ---------- 事件 ---------- */
+  function flash(msg, bad) {
+    var el = document.getElementById('flash');
+    el.textContent = msg;
+    el.className = bad ? 'flash bad' : 'flash';
+    el.hidden = false;
+  }
+
+  document.getElementById('btn-add').addEventListener('click', function () {
+    var box = document.getElementById('paste');
+    var text = box.value.trim();
+    if (!text) { flash('先把 LINE 傳來的字貼進上面的框。', true); return; }
+
+    var before = orders.length;
+    var res = parseLines(text);
+    if (!res.added.length) {
+      flash('看不懂這幾行：' + res.failed.join('／') + '。格式是「姓名：品項＋品項」。', true);
+      return;
+    }
+    save(); render();
+    box.value = '';
+    var msg = '已加入 ' + res.added.join('、') + '（' + (orders.length - before) + ' 人）。';
+    if (res.unresolved) { msg += ' 有 ' + res.unresolved + ' 項認不出來，請往下看「下單前要確認」。'; }
+    if (res.failed.length) { msg += ' 這幾行跳過了：' + res.failed.join('／') + '。'; }
+    flash(msg, res.unresolved > 0 || res.failed.length > 0);
+  });
+
+  document.getElementById('btn-manual').addEventListener('click', function () {
+    var who = document.getElementById('m-who').value.trim();
+    var id = document.getElementById('m-item').value;
+    var qty = parseInt(document.getElementById('m-qty').value, 10) || 1;
+    var note = document.getElementById('m-note').value.trim();
+    if (!who) { flash('要填姓名。', true); return; }
+    if (!id) { flash('要選品項。', true); return; }
+
+    var person = null;
+    for (var n = 0; n < orders.length; n++) {
+      if (orders[n].who === who) { person = orders[n]; break; }
+    }
+    if (!person) { person = { who:who, items:[] }; orders.push(person); }
+    person.items.push({ id:id, qty:Math.min(Math.max(qty, 1), 20), note:note });
+
+    save(); render();
+    document.getElementById('m-who').value = '';
+    document.getElementById('m-note').value = '';
+    document.getElementById('m-qty').value = '1';
+    flash('已加入 ' + who + '：' + BY_ID[id].name + '。');
+  });
+
+  document.getElementById('btn-copy').addEventListener('click', function () {
+    var text = asText();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        flash('清單已複製，可以貼回 LINE。');
+      }, function () { showFallback(text); });
+    } else { showFallback(text); }
+  });
+  function showFallback(text) {
+    var box = document.getElementById('paste');
+    box.value = text;
+    box.select();
+    flash('複製不了，清單先放到上面的框，請手動全選複製（複製完記得清空）。', true);
+  }
+
+  document.getElementById('btn-reset').addEventListener('click', function () {
+    if (!confirm('要還原成預設的 ' + seed().length + ' 人嗎？之後自己加的會不見。')) { return; }
+    orders = seed(); checked = {};
+    save(); render();
+    flash('已還原成預設 ' + orders.length + ' 人。');
+  });
+
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+
+    if (t.matches('input[type="checkbox"][data-key]')) {
+      if (t.checked) { checked[t.dataset.key] = true; } else { delete checked[t.dataset.key]; }
+      save();
+      updateProgress();
+      return;
+    }
+    if (t.matches('select[data-shop-of]')) {
+      var a = t.dataset.shopOf.split(':');
+      orders[a[0]].items[a[1]].shop = t.value;
+      save(); render();
+      return;
+    }
+    if (t.matches('select[data-fix]')) {
+      if (!t.value) { return; }
+      var b = t.dataset.fix.split(':');
+      var item = orders[b[0]].items[b[1]];
+      delete item.raw;
+      item.id = t.value;
+      save(); render();
+      flash('已改成 ' + BY_ID[t.value].name + '。');
+    }
+  });
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-del]');
+    if (!btn) { return; }
+    var idx = parseInt(btn.dataset.del, 10);
+    var who = orders[idx].who;
+    if (!confirm('要刪掉 ' + who + ' 的點餐嗎？')) { return; }
+    orders.splice(idx, 1);
+    save(); render();
+    flash('已刪掉 ' + who + '。');
+  });
+
+  /* ---------- 啟動 ---------- */
+  document.getElementById('m-item').innerHTML =
+    '<option value="">選品項…</option>' +
+    SHOP_ORDER.map(function (shop) {
+      return '<optgroup label="' + esc(SHOPS[shop].label) + '">' +
+        MENU.filter(function (m) { return m.shop === shop; }).map(function (m) {
+          return '<option value="' + m.id + '">' + esc(m.name) +
+            (m.price !== null ? '（' + m.price + '）' : '') + '</option>';
+        }).join('') + '</optgroup>';
+    }).join('');
+
+  document.getElementById('btn-reset').textContent = '回到預設 ' + seed().length + ' 人';
+
+  // 手機上先收起輸入區，一打開就看到要買什麼
+  if (window.matchMedia && window.matchMedia('(max-width:640px)').matches) {
+    document.getElementById('add-panel').open = false;
+  }
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>
