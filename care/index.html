@@ -309,12 +309,6 @@ textarea{
   background:var(--amber-soft); color:var(--amber); font-size:14px; text-align:left; line-height:1.6;
 }
 .hintfill b{font-family:var(--mono); font-size:16px; letter-spacing:.06em;}
-.namechips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
-.namechips button{
-  border:1px solid var(--line); background:var(--surface); border-radius:999px;
-  padding:8px 15px; font-size:15px; color:var(--ink);
-}
-.namechips button[aria-pressed="true"]{background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:700;}
 .devchip{
   display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px; font-weight:600;
   background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:4px 9px; color:var(--ink-2);
@@ -452,9 +446,6 @@ var DEFAULT_API = "https://script.google.com/macros/s/AKfycbxQqsFjIl-kLk94UnVRvt
  * 改了上面 Apps Script 的 TOKEN，記得這裡也要一起改。
  * 不想給提示就設成空字串 ""。 */
 var TOKEN_HINT = "1234";
-
-/* 讓長輩一按就好的常用稱呼 */
-var NAME_CHIPS = ["爸爸", "媽媽", "大哥", "大姊", "小妹", "阿美"];
 
 /* ============ 儲存 ============ */
 var CFGKEY = "tc-ltc-cfg-v1", KEY = "tc-ltc-transport-v1", PKEY = "tc-ltc-pending-v1",
@@ -726,8 +717,8 @@ function showGate(msg){
   + '<div class="eyebrow">台中長照接送速查</div>'
   + '<h1>' + (needTok ? "請輸入通關密語" : "你是誰？") + '</h1>'
   + '<p class="lead">' + (needTok
-      ? "這是全家共用的長照接送名單。輸入家人給你的通關密語，再選一下你是誰，就可以開始用了。"
-      : "選一個稱呼就好。之後每一筆紀錄都會標上是誰做的，家人才知道電話是誰打的、筆記是誰寫的。") + '</p>'
+      ? "這是全家共用的長照接送名單。輸入家人給你的通關密語，再打上你的名字，就可以開始用了。"
+      : "打上你的名字或稱呼。之後每一筆紀錄都會標上是誰做的，家人才知道電話是誰打的、筆記是誰寫的。") + '</p>'
   + (needApi ? ''
     + '<div class="gfield"><div class="lbl">雲端網址（進階）</div>'
     + '<input class="gbig" id="gApi" value="' + esc(cfg.api) + '" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false" inputmode="url"></div>' : "")
@@ -737,8 +728,7 @@ function showGate(msg){
     + (TOKEN_HINT ? '<button type="button" class="hintfill" id="gFill">密語就是 <b>' + esc(TOKEN_HINT) + '</b> —— 點這裡自動填</button>' : "")
     + '</div>' : "")
   + '<div class="gfield"><div class="lbl">你是誰</div>'
-  + '<div class="namechips">' + NAME_CHIPS.map(function(n){ return '<button type="button" data-nm="' + n + '">' + n + '</button>'; }).join("") + '</div>'
-  + '<input class="gbig" id="gName" value="' + esc(dev.name) + '" placeholder="點上面，或自己打名字" autocomplete="off"></div>'
+  + '<input class="gbig" id="gName" value="' + esc(dev.name) + '" placeholder="輸入你的名字或稱呼" autocomplete="off"></div>'
   + '<button class="gbtn-main" id="gGo">開始使用</button>'
   + '<div class="gmsg" id="gMsg">' + (msg || "") + '</div>'
   + '<div class="gmsg" style="margin-top:22px"><span class="devchip">這台裝置 ' + dev.id + '</span>'
@@ -749,17 +739,9 @@ function showGate(msg){
 function hideGate(){ $("#gate").hidden = true; document.body.style.overflow = ""; }
 
 $("#gate").addEventListener("click", function(e){
-  var chip = e.target.closest("[data-nm]");
-  if(chip){
-    $("#gName").value = chip.getAttribute("data-nm");
-    Array.prototype.forEach.call($("#gate").querySelectorAll("[data-nm]"), function(b){
-      b.setAttribute("aria-pressed", String(b === chip));
-    });
-    return;
-  }
   if(e.target.closest("#gFill")){
     var ti = $("#gToken"); ti.value = TOKEN_HINT; ti.focus();
-    var m = $("#gMsg"); m.className = "gmsg good"; m.textContent = "密語填好了，選一下你是誰再按「開始使用」。";
+    var m = $("#gMsg"); m.className = "gmsg good"; m.textContent = "密語填好了，打上你的名字再按「開始使用」。";
     return;
   }
   if(e.target.closest("#gAdv")){ gateAdv = true; showGate("需要換試算表時才改這裡。"); return; }
@@ -770,7 +752,7 @@ $("#gate").addEventListener("click", function(e){
   var msg = $("#gMsg");
   if(!api){ msg.className = "gmsg bad"; msg.textContent = "缺少雲端網址，請按下面的「進階設定」填入。"; return; }
   if(!tk){ msg.className = "gmsg bad"; msg.textContent = "請輸入通關密語。"; return; }
-  if(!nm){ msg.className = "gmsg bad"; msg.textContent = "請選一個稱呼，家人才分得出是誰。"; return; }
+  if(!nm){ msg.className = "gmsg bad"; msg.textContent = "請輸入你的名字，家人才分得出是誰。"; return; }
   cfg.api = api; cfg.token = tk; saveCfg();
   dev.name = nm; saveDev();
   go.disabled = true; msg.className = "gmsg"; msg.textContent = "連線中…";
