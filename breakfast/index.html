@@ -255,7 +255,7 @@
     <div class="actions">
       <button type="button" id="btn-add">加入清單</button>
       <button type="button" class="ghost" id="btn-copy">複製整份清單</button>
-      <button type="button" class="quiet" id="btn-reset">回到原始 8 人</button>
+      <button type="button" class="quiet" id="btn-reset">回到預設清單</button>
     </div>
     <div class="flash" id="flash" hidden></div>
 
@@ -383,7 +383,7 @@
     { id:'salty-soy',name:'鹹豆漿',     shop:'deji', price:null, alias:['鹹豆漿'] },
     { id:'soy-milk', name:'豆漿',       shop:'deji', price:null, alias:['豆漿'] },
     // 7-11（咖啡一律超商，統一大杯）
-    { id:'latte',    name:'拿鐵',   shop:'cvs', price:null, alias:['拿鐵','拿堤','latte'] },
+    { id:'latte',    name:'拿鐵',   shop:'cvs', price:null, alias:['拿鐵','拿堤','latte','大拿','拿'] },
     { id:'americano',name:'美式',   shop:'cvs', price:null, alias:['美式','americano'] },
     { id:'coffee',   name:'咖啡',   shop:'cvs', price:null, alias:['咖啡'] }
   ];
@@ -411,7 +411,10 @@
       { who:'安素', items:[ i('veg-wrap'), i('latte','熱') ] },
       { who:'品華', items:[ i('panbun','',2) ] },
       { who:'秋滿', items:[ i('sw-veg'), i('fresh-tea','熱・無糖') ], warn:'鮮奶茶記得交代熱、無糖；無名店分大小杯，這裡算大杯 30 元' },
-      { who:'淨宜', items:[ i('onigiri'), i('bean-rice','冰') ] }
+      { who:'淨宜', items:[ i('onigiri'), i('bean-rice','冰') ] },
+      { who:'垣銘', items:[ i('wagui'), i('panbun','',2) ] },
+      { who:'明宇', items:[ i('sb-egg'), i('bean-rice','熱') ] },
+      { who:'品元', items:[ i('latte','熱') ] }
     ];
   }
   function i(id, note, qty) { return { id:id, note:note || '', qty:qty || 1 }; }
@@ -728,10 +731,10 @@
   }
 
   document.getElementById('btn-reset').addEventListener('click', function () {
-    if (!confirm('要把清單還原成最早的 8 人嗎？後來加的會不見。')) { return; }
+    if (!confirm('要還原成預設的 ' + seed().length + ' 人嗎？之後自己加的會不見。')) { return; }
     orders = seed(); checked = {};
     save(); render();
-    flash('已還原成原始 8 人。');
+    flash('已還原成預設 ' + orders.length + ' 人。');
   });
 
   document.addEventListener('change', function (ev) {
@@ -781,6 +784,8 @@
             (m.price !== null ? '（' + m.price + '）' : '') + '</option>';
         }).join('') + '</optgroup>';
     }).join('');
+
+  document.getElementById('btn-reset').textContent = '回到預設 ' + seed().length + ' 人';
 
   // 手機上先收起輸入區，一打開就看到要買什麼
   if (window.matchMedia && window.matchMedia('(max-width:640px)').matches) {
